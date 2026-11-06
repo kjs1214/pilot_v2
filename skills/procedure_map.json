@@ -1,0 +1,24 @@
+{
+  "note": "Which procedure tags apply to each environment/task. Used to select procedural skills to inject (static, no retrieval).",
+  "alfworld": {
+    "pick":  ["find_object", "acquire", "place_target", "container", "verify"],
+    "pick2": ["find_object", "acquire", "place_target", "container", "count", "verify"],
+    "look":  ["find_object", "acquire", "verify"],
+    "clean": ["find_object", "acquire", "state_change", "place_target", "container", "verify"],
+    "heat":  ["find_object", "acquire", "state_change", "place_target", "container", "verify"],
+    "cool":  ["find_object", "acquire", "state_change", "place_target", "container", "verify"]
+  },
+  "scienceworld": {
+    "boil":   ["find_object", "acquire", "container", "state_change", "verify"],
+    "melt":   ["find_object", "acquire", "container", "state_change", "verify"],
+    "freeze": ["find_object", "acquire", "container", "state_change", "verify"],
+    "change-the-state-of-matter-of": ["find_object", "acquire", "container", "state_change", "verify"]
+  },
+  "twc":          {"*": ["find_object", "acquire", "container", "place_target", "count", "verify"]},
+  "cookingworld": {"*": ["instructions", "find_object", "acquire", "container", "state_change", "verify"]},
+  "skillrl_raw_category": {
+    "scienceworld": {"boil": "heat", "melt": "heat", "freeze": "cool", "change-the-state-of-matter-of": "heat"},
+    "twc": {"*": "pick_and_place"},
+    "cookingworld": {"*": "heat"}
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "note": "Environment-agnostic procedural skills, hand-abstracted from the SkillRL ALFWorld bank (general + heat/cool/clean/pick/pick2/look task-specific skills). No environment-specific object, device or command names. Each skill carries procedure tags used by procedure_map.json.",
+  "skills": [
+    {"skill_id": "proc_locate", "title": "Locate Before Acting", "tags": ["find_object"],
+     "principle": "If the target is not visible, search plausible surfaces and containers one at a time without revisiting, opening closed containers to inspect them, and keep track of where you have already looked.",
+     "when_to_apply": "Whenever the object you need is not currently visible or reachable."},
+    {"skill_id": "proc_acquire", "title": "Acquire Immediately", "tags": ["find_object", "acquire"],
+     "principle": "As soon as a required object becomes visible and reachable, take it before doing anything else so you do not have to search for it again.",
+     "when_to_apply": "When a required object appears in your observation."},
+    {"skill_id": "proc_state_change", "title": "Change State With the Right Device", "tags": ["state_change"],
+     "principle": "To change an object's state (for example heating, cooling, cleaning, boiling, freezing or cooking it), bring the object to the appropriate device, make the device ready (open or switch it on if needed), apply the device to the object, and confirm the state changed before moving on.",
+     "when_to_apply": "When the task requires the object to be in a different state than it currently is."},
+    {"skill_id": "proc_container", "title": "Handle Containers", "tags": ["container"],
+     "principle": "Closed containers must be opened before you can see or take what is inside, and before you can put something inside; use a container that fits the object when one is required.",
+     "when_to_apply": "When interacting with anything that can be opened or that holds other objects."},
+    {"skill_id": "proc_destination", "title": "Destination After Acquisition", "tags": ["place_target"],
+     "principle": "After acquiring the goal object and completing any required state change, go directly to the destination named in the task and put the object there; do not keep exploring.",
+     "when_to_apply": "When you hold the goal object in its required state."},
+    {"skill_id": "proc_count", "title": "Track Counts", "tags": ["count"],
+     "principle": "If the task asks for more than one object, keep a running count of what has been placed and what remains; finish only when the required number is in place.",
+     "when_to_apply": "When the task mentions a quantity or several objects."},
+    {"skill_id": "proc_verify", "title": "Verify Before Finishing", "tags": ["verify"],
+     "principle": "Before concluding, re-read the task and check every condition (object, state, destination, count) is satisfied; if something is missing, continue rather than stopping early.",
+     "when_to_apply": "Whenever you think the task might be complete."},
+    {"skill_id": "proc_instructions", "title": "Read Instructions First", "tags": ["instructions"],
+     "principle": "If the task refers to written instructions (a recipe, note or manual), find and read them first, then follow the listed steps in order.",
+     "when_to_apply": "When the task mentions instructions, a recipe or a document to consult."}
+  ]
+}

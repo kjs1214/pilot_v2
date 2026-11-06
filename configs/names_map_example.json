@@ -1,0 +1,15 @@
+{
+  "fridge": "refrigerator",
+  "microwave": "microwave oven",
+  "sinkbasin": "sink basin",
+  "bathtubbasin": "bathtub basin",
+  "garbagecan": "trash can",
+  "countertop": "counter top",
+  "diningtable": "dining table",
+  "sidetable": "side table",
+  "coffeetable": "coffee table",
+  "desklamp": "desk lamp",
+  "floorlamp": "floor lamp",
+  "stoveburner": "stove burner",
+  "coffeemachine": "coffee machine"
+}
