@@ -14,7 +14,7 @@ ALF_WORDING = [re.compile(r"^(heat|cool|clean) .+ with .+$"), re.compile(r"^take
                re.compile(r"\b(sinkbasin|countertop|garbagecan|desklamp|microwave \d|fridge \d|cabinet \d|drawer \d|stoveburner)\b")]
 
 SW_ALWAYS = ["look around", "inventory", "task", "wait", "wait1"]
-SW_PRIORITY = [("focus on", 40), ("go to", 20), ("open", 20), ("close", 20), ("pick up", 40), ("activate", 20),
+SW_PRIORITY = [("focus on", 40), ("go to", 20), ("teleport to", 20), ("open", 20), ("close", 20), ("pick up", 40), ("activate", 20),
                ("deactivate", 20), ("move", 40), ("pour", 20), ("use", 20), ("look at", 30), ("look in", 20),
                ("examine", 20), ("put down", 10), ("read", 10)]
 

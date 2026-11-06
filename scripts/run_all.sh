@@ -8,6 +8,8 @@
 #   necessity : ALFWorld, EMBEDDING retrieval: library variants (full / minus RETIRE_CATS / +duplicates) x top-k  -> slot competition
 #   transfer  : procedure-sharing envs (scienceworld, twc, cookingworld) x base/sft/rl x {none, procedural, mismatch_proc, skillrl_raw}
 #               add the competent untrained reference with TRANSFER_MODELS="base sft rl calib"
+#               env difficulty: SW_SIMPL (e.g. "noElectricalAction,openDoors,teleportAction"),
+#               TWC_PARAMS / CW_PARAMS (TextWorldExpress gameParams, e.g. "numLocations=1, numItemsToPutAway=1, includeDoors=0, limitInventorySize=0")
 set -uo pipefail
 cd "$(dirname "$0")/.." && source scripts/env.sh
 PHASE=${1:-all}; REPS=${REPS:-2}; OUT=${OUT:-runs}
@@ -78,9 +80,15 @@ if [ "$PHASE" = transfer ] || [ "$PHASE" = all ]; then
       for sk in ${TRANSFER_SKILLS:-none procedural mismatch_proc skillrl_raw}; do
         out="$OUT/transfer/${env}_${tag}_${sk}.jsonl"; [ -s "$out" ] && { echo "[skip] $out"; continue; }
         echo "[$(ts)] transfer $env $tag $sk"
+        envopt=()
+        case $env in
+          scienceworld) envopt=(--simplifications "${SW_SIMPL:-noElectricalAction}");;
+          twc)          [ -n "${TWC_PARAMS:-}" ] && envopt=(--game_params "$TWC_PARAMS");;
+          cookingworld) [ -n "${CW_PARAMS:-}" ] && envopt=(--game_params "$CW_PARAMS");;
+        esac
         python run_eval.py --env $env --model "$(model_of $tag)" --tag $tag --skills $sk --split test \
           --max_variations ${TRANSFER_VARS:-10} --reps "$REPS" --parallel ${PARALLEL:-8} --save_think $(extra_of $tag) \
-          --out "$out.tmp" && mv "$out.tmp" "$out"
+          "${envopt[@]}" --out "$out.tmp" && mv "$out.tmp" "$out"
       done
     done
   done

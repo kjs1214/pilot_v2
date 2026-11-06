@@ -46,7 +46,14 @@ if [ ! -f "$W/ckpt/rl_merged/config.json" ] || [ ! -d "$W/ckpt/sft" ]; then
   python "$PILOT/scripts/download_models.py" --dest "$W/ckpt"
 fi
 if [ ! -f "$W/ckpt/rl_merged/config.json" ]; then
-  python "$PILOT/scripts/merge_fsdp_ckpt.py" --local_dir "$W/ckpt/rl_raw/actor" --target_dir "$W/ckpt/rl_merged"
+  # The RL checkpoint was saved by verl with torch 2.8 (DTensor/DeviceMesh pickles). Newer torch (pulled in by vLLM)
+  # can fail to unpickle them, so merge in a small dedicated CPU venv with torch 2.8.0.
+  if [ ! -x "$W/venv_merge/bin/python" ]; then
+    python3 -m venv "$W/venv_merge"
+    "$W/venv_merge/bin/pip" install -q "torch==2.8.0" --index-url https://download.pytorch.org/whl/cpu
+    "$W/venv_merge/bin/pip" install -q safetensors numpy
+  fi
+  "$W/venv_merge/bin/python" "$PILOT/scripts/merge_fsdp_ckpt.py" --local_dir "$W/ckpt/rl_raw/actor" --target_dir "$W/ckpt/rl_merged"
   rm -rf "$W/ckpt/rl_raw"
 fi
 [ -f "$PILOT/configs/skills_mismatched.json" ] || python "$PILOT/scripts/make_skill_variants.py" \

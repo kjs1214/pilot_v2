@@ -38,8 +38,13 @@ def local_and_placement(t):
     """Return (local_tensor, placement_or_None) for a DTensor or plain tensor."""
     if isinstance(t, DTensor):
         pl = tuple(t.placements)
-        names = t.device_mesh.mesh_dim_names or ("fsdp",)
-        if names and names[0] in ("dp", "ddp"):       # replicated dp dim can be discarded (as in verl)
+        # DeviceMesh objects pickled by an older torch (verl/SkillRL used torch 2.8) can miss attributes that newer
+        # torch versions read (e.g. _mesh_dim_names). Read names defensively and fall back to the placements alone.
+        try:
+            names = getattr(t.device_mesh, "mesh_dim_names", None) or ()
+        except Exception:
+            names = ()
+        if len(pl) == 2 and (not names or names[0] in ("dp", "ddp")):   # (ddp, fsdp) mesh: drop the replicated dim
             pl = pl[1:]
         assert len(pl) == 1, f"only 1-D FSDP meshes are supported, got placements {pl}"
         return t._local_tensor, pl[0]
