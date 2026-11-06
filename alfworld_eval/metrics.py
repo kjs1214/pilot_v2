@@ -210,6 +210,25 @@ def key_contrasts(groups, margin, names):
                 g, d = r; ci = boot_ci(d)
                 v = "TRAINED BREAKS" if ci[1] < 0 else ("trained gains" if ci[0] > 0 else "no difference")
                 print(f"    {tr:4s} {p:9s} n={len(g):3d} {np.mean(d):+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]  {v}")
+    print("[B'] break rate (baseline-robust): among games the model solves in the original env (mean success >= 0.5),")
+    print("     fraction that fail after the change. trained - calib > 0 = trained breaks more, independent of baseline level")
+    def break_rate(tag, p):
+        a_, b_ = gl(tag, "none"), gl(tag, p)
+        if not a_ or not b_: return None
+        solved = [x for x in a_ if a_[x] >= 0.5 and x in b_]
+        return {x: 1.0 - b_[x] for x in solved}
+    for p in perts:
+        bc = break_rate("calib", p)
+        for tr in ("rl", "sft"):
+            bt = break_rate(tr, p)
+            if not bt or not bc: continue
+            vt, vc = list(bt.values()), list(bc.values())
+            rng = np.random.default_rng(0)
+            diffs = [rng.choice(vt, len(vt)).mean() - rng.choice(vc, len(vc)).mean() for _ in range(2000)]
+            lo, hi = np.percentile(diffs, [2.5, 97.5])
+            v = "TRAINED BREAKS MORE" if lo > 0 else ("calib breaks more" if hi < 0 else "no difference")
+            print(f"    {tr:4s} {p:9s} break(trained)={np.mean(vt):.3f} (n={len(vt)}) break(calib)={np.mean(vc):.3f} (n={len(vc)}) "
+                  f"diff {np.mean(vt)-np.mean(vc):+.3f} [{lo:+.3f},{hi:+.3f}]  {v}")
     print("[C] pulls training wording under perturbation: intrusion(trained) - intrusion(untrained), >0 = pulls old wording")
     for tr in ("rl", "sft"):
         for ref in ("base", "calib"):
@@ -221,40 +240,57 @@ def key_contrasts(groups, margin, names):
                     v = "TRAINED INTRUDES" if ci[0] > 0 else ("reference intrudes more" if ci[1] < 0 else "no difference")
                     print(f"    {tr:4s} vs {ref:5s} {p:9s} n={len(g):3d} {np.mean(d):+.4f} [{ci[0]:+.4f},{ci[1]:+.4f}]  {v}")
     print("\n--- Q2 (main): small with/without-skill gap in the original env, but a large gap after the surface change? ---")
-    print("[D] skill gap = success(full skills) - success(cond); cond = nosk (no skills) or mismatch (wrong task skills, same format)")
+    print("[D] skill gap = success(A) - success(B) for pairs (A,B): (full,nosk) (full,mismatch) (proc,proc_mismatch) (proc,nosk)")
     print("    columns: gap in original env | gap in perturbed env | change (pert - none). change > 0 = skills matter more after the change")
-    def gap_rows(tr, cond, p):
-        need = [(tr, q, c) for q in ("none", p) for c in ("full", cond)]
+    PAIRS = [("full", "nosk"), ("full", "mismatch"), ("proc", "proc_mismatch"), ("proc", "nosk")]
+    def gap_rows(tr, A, B, p):
+        need = [(tr, q, c) for q in ("none", p) for c in (A, B)]
         G = {n: gl(n[0], n[1], n[2]) for n in need}
         if any(v is None for v in G.values()):
             return None
         g = sorted(set.intersection(*[set(v) for v in G.values()]))
-        g0 = [G[(tr, "none", "full")][x] - G[(tr, "none", cond)][x] for x in g]
-        g1 = [G[(tr, p, "full")][x] - G[(tr, p, cond)][x] for x in g]
+        g0 = [G[(tr, "none", A)][x] - G[(tr, "none", B)][x] for x in g]
+        g1 = [G[(tr, p, A)][x] - G[(tr, p, B)][x] for x in g]
         return g, g0, g1
     dd_cache = {}
     for tr in ("rl", "sft", "calib"):
-        for cond in ("nosk", "mismatch", "proc", "proc_mismatch"):
+        for A, B in PAIRS:
             for p in perts:
-                r = gap_rows(tr, cond, p)
+                r = gap_rows(tr, A, B, p)
                 if r is None:
                     continue
-                g, g0, g1 = r; ch = [b - a for a, b in zip(g0, g1)]
+                g, g0, g1 = r; ch = [y - x for x, y in zip(g0, g1)]
                 c0, c1, cc = boot_ci(g0), boot_ci(g1), boot_ci(ch)
-                dd_cache[(tr, cond, p)] = dict(zip(g, ch))
+                dd_cache[(tr, A, B, p)] = dict(zip(g, ch))
                 v = "SKILLS MATTER MORE AFTER CHANGE" if cc[0] > 0 else ("matter less" if cc[1] < 0 else "no change")
-                print(f"    {tr:5s} {cond:8s} {p:9s} n={len(g):3d}  none {np.mean(g0):+.3f} [{c0[0]:+.3f},{c0[1]:+.3f}]"
+                print(f"    {tr:5s} {A+'-'+B:18s} {p:9s} n={len(g):3d}  none {np.mean(g0):+.3f} [{c0[0]:+.3f},{c0[1]:+.3f}]"
                       f" | pert {np.mean(g1):+.3f} [{c1[0]:+.3f},{c1[1]:+.3f}] | change {np.mean(ch):+.3f} [{cc[0]:+.3f},{cc[1]:+.3f}]  {v}")
     print("[D'] control: is the change specific to TRAINED models? change(trained) - change(calib), > 0 = training-specific")
     for tr in ("rl", "sft"):
-        for cond in ("nosk", "mismatch"):
+        for A, B in PAIRS:
             for p in perts:
-                a_, b_ = dd_cache.get((tr, cond, p)), dd_cache.get(("calib", cond, p))
+                a_, b_ = dd_cache.get((tr, A, B, p)), dd_cache.get(("calib", A, B, p))
                 if not a_ or not b_:
                     continue
                 g = sorted(set(a_) & set(b_)); d = [a_[x] - b_[x] for x in g]; ci = boot_ci(d)
                 v = "TRAINING-SPECIFIC" if ci[0] > 0 else ("calib larger" if ci[1] < 0 else "no difference")
-                print(f"    {tr:4s} {cond:8s} {p:9s} n={len(g):3d} {np.mean(d):+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]  {v}")
+                print(f"    {tr:4s} {A+'-'+B:18s} {p:9s} n={len(g):3d} {np.mean(d):+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]  {v}")
+    print("\n[F] per task type, original env: skill gap full - nosk and full - mismatch (small gap = looks 'internalized';")
+    print("    use these to choose RETIRE_CATS for the necessity phase)")
+    for tr in ("rl", "sft"):
+        for B in ("nosk", "mismatch"):
+            kf, kb = (tr, "seen", "none", "full"), (tr, "seen", "none", B)
+            if kf not in groups or kb not in groups: continue
+            tt = {}
+            for r in groups[kf]: tt[r["game_id"]] = r["task_type"]
+            gf, gb = game_level(groups[kf]), game_level(groups[kb])
+            row = []
+            for t in sorted(set(tt.values())):
+                g = [x for x in gf if tt.get(x) == t and x in gb]
+                if not g: continue
+                d = [gf[x] - gb[x] for x in g]; ci = boot_ci(d)
+                row.append(f"{t}={np.mean(d):+.2f}[{ci[0]:+.2f},{ci[1]:+.2f}](n={len(g)})")
+            print(f"    {tr:4s} full-{B:8s} " + "  ".join(row))
     print("\n--- secondary ---")
     print("[E] (secondary) where it arises: (rl pert-none) - (sft pert-none), <0 = RL stage adds to the break")
     for p in perts:

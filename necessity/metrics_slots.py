@@ -34,7 +34,14 @@ def main():
     g = defaultdict(list)
     for r in recs:
         lib = r.get("library", "full"); g[(r["tag"], lib, r.get("top_k"), r.get("retrieval_mode"))].append(r)
-    print(f"{'tag':5s} {'library':22s} {'k':>3s} {'mode':9s} {'n':>4s} {'success':>8s} {'95%CI':>16s} {'tokens':>7s} {'true_cat':>8s} {'retired':>8s} {'dups':>6s} {'empty':>6s}")
+    print(f"{'tag':5s} {'library':22s} {'k':>3s} {'mode':9s} {'tasks':12s} {'n':>4s} {'success':>8s} {'95%CI':>16s} {'tokens':>7s} {'true_cat':>8s} {'retired':>8s} {'dups':>6s} {'empty':>6s}")
+    split = {}
+    for key, rs in g.items():
+        own = [r for r in rs if TRUE_CAT.get(r["task_type"]) in retired]
+        oth = [r for r in rs if TRUE_CAT.get(r["task_type"]) not in retired]
+        if own: split[key + ("retired-type",)] = own
+        if oth: split[key + ("other-type",)] = oth
+    g = split
     for key in sorted(g, key=str):
         rs = g[key]; by_game = defaultdict(list)
         for r in rs: by_game[r["game_id"]].append(float(r["success"]))
@@ -48,9 +55,11 @@ def main():
                 tot += 1; c = cat_of(s)
                 tc += (c == TRUE_CAT.get(r["task_type"])); rc += (c in retired); dc += s.startswith("dup")
         d = lambda x, y: x / y if y else float("nan")
-        print(f"{key[0]:5s} {str(key[1]):22s} {str(key[2]):>3s} {str(key[3]):9s} {len(by_game):4d} {np.mean(vals):8.3f} [{ci[0]:.3f},{ci[1]:.3f}] "
+        print(f"{key[0]:5s} {str(key[1]):22s} {str(key[2]):>3s} {str(key[3]):9s} {key[4]:12s} {len(by_game):4d} {np.mean(vals):8.3f} [{ci[0]:.3f},{ci[1]:.3f}] "
               f"{(np.mean(toks) if toks else float('nan')):7.0f} {d(tc,tot):8.3f} {d(rc,tot):8.3f} {d(dc,tot):6.3f} {empty/len(rs):6.3f}")
-    print("\ntrue_cat = share of retrieved task-specific slots from the task's own category; retired = share from --retired categories;")
+    print("\nrows are split by task type: 'retired-type' = tasks whose own category was retired (their retrieved skills are")
+    print("relevant but internalized), 'other-type' = remaining tasks (retired-category skills there are plain distractors).")
+    print("true_cat = share of retrieved task-specific slots from the task's own category; retired = share from --retired categories;")
     print("dups = share taken by near-duplicate copies (plus_dups libraries); empty = episodes with no task-specific skill retrieved.")
 
 

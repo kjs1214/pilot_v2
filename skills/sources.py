@@ -35,10 +35,10 @@ class ProceduralSkills:
     def select(self, env: str, task_key: str, mismatch: bool = False) -> List[Dict]:
         tags = set(self.tags_for(env, task_key))
         if mismatch:
-            chosen = [s for s in self.bank if not (set(s["tags"]) & tags)]
-            # keep the count comparable to the matched set
+            pool = [s for s in self.bank if not (set(s["tags"]) & tags)]
             n = len([s for s in self.bank if set(s["tags"]) & tags])
-            chosen = chosen[:max(1, n)] if chosen else []
+            # same number of skill entries as the matched set: cycle through the non-applicable skills if there are fewer
+            chosen = [pool[i % len(pool)] for i in range(max(1, n))] if pool else []
         else:
             chosen = [s for s in self.bank if set(s["tags"]) & tags]
         return chosen

@@ -55,9 +55,18 @@ def main():
                 d = [o[k] - base[k] for k in common]; ci = boot_ci(d)
                 v = "HELPS" if ci[0] > 0 else ("HURTS" if ci[1] < 0 else "no effect")
                 print(f"    {tag:5s} {src:14s} n={len(common):3d} {np.mean(d):+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]  {v}")
-        print("--- key: gap(rl) - gap(base) for procedural skills, paired by variation ---")
+        for ref in ("base", "calib"):
+          for src, ctrl in (("procedural", "none"), ("procedural", "mismatch_proc")):
+            need = [("rl", ctrl), ("rl", src), (ref, ctrl), (ref, src)]
+            if not all(k in g for k in need):
+                continue
+            P = {k: per_var(g[k]) for k in need}; common = sorted(set.intersection(*[set(v) for v in P.values()]))
+            d = [(P[("rl", src)][k] - P[("rl", ctrl)][k]) - (P[(ref, src)][k] - P[(ref, ctrl)][k]) for k in common]
+            ci = boot_ci(d)
+            v = "TRAINED LEANS MORE ON PROCEDURAL SKILLS" if ci[0] > 0 else ("trained leans less" if ci[1] < 0 else "no difference")
+            print(f"--- key: [{src}-{ctrl}](rl) - [{src}-{ctrl}]({ref})  n={len(common):3d} {np.mean(d):+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]  {v}")
         need = [("rl", "none"), ("rl", "procedural"), ("base", "none"), ("base", "procedural")]
-        if all(k in g for k in need):
+        if False and all(k in g for k in need):
             P = {k: per_var(g[k]) for k in need}; common = sorted(set.intersection(*[set(v) for v in P.values()]))
             d = [(P[("rl", "procedural")][k] - P[("rl", "none")][k]) - (P[("base", "procedural")][k] - P[("base", "none")][k]) for k in common]
             ci = boot_ci(d)

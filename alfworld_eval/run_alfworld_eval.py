@@ -85,6 +85,12 @@ class Episode:
             # mirror SkillRL's projection: an unparsable response is sent as its last 30 chars (-> 'Nothing happens.')
             env_action = response.lower()[-30:]
             valid_format = False
+        elif self.pert.kind != "none" and raw_action not in adm_shown:
+            # Under a perturbation the admissible commands are the perturbed ones shown to the model. An off-list action
+            # (e.g. the ORIGINAL wording 'go to cabinet 1' while the list says 'move to cabinet 1') does not exist in the
+            # perturbed interface, so it must fail like any invalid command instead of being silently executed.
+            env_action = "__offlist_under_perturbation__"
+            valid_format = has_think
         else:
             env_action = self.pert.action_reverse(raw_action)
             valid_format = has_think

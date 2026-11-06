@@ -7,6 +7,7 @@
 #   calib     : untrained reference (Qwen3-30B-A3B) x the same perturbations, with and without skills
 #   necessity : ALFWorld, EMBEDDING retrieval: library variants (full / minus RETIRE_CATS / +duplicates) x top-k  -> slot competition
 #   transfer  : procedure-sharing envs (scienceworld, twc, cookingworld) x base/sft/rl x {none, procedural, mismatch_proc, skillrl_raw}
+#               add the competent untrained reference with TRANSFER_MODELS="base sft rl calib"
 set -uo pipefail
 cd "$(dirname "$0")/.." && source scripts/env.sh
 PHASE=${1:-all}; REPS=${REPS:-2}; OUT=${OUT:-runs}
@@ -51,7 +52,7 @@ fi
 if [ "$PHASE" = calib ] || [ "$PHASE" = all ]; then
   for p in none using moveto fromtake names; do alf calib $p full; done
   for p in ${CALIB_NOSK_PERTS:-none moveto names}; do alf calib $p nosk; done
-  for p in ${CALIB_PROC_PERTS:-none names}; do alf calib $p proc; done
+  for p in ${CALIB_PROC_PERTS:-none names}; do alf calib $p proc; alf calib $p proc_mismatch; done
 fi
 if [ "$PHASE" = necessity ] || [ "$PHASE" = all ]; then
   # RETIRE_CATS: categories whose task-specific skills look internalized (small skill gap in Q2), e.g. "heat,cool"
