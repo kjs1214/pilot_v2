@@ -27,6 +27,11 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     p = os.path.join(a.out, "skills_mismatched.json")
     json.dump(mism, open(p, "w"), indent=2, ensure_ascii=False)
+    # "general" = general_skills + the common_mistakes that template mode injects (first 5): both environment-agnostic
+    nog = copy.deepcopy(bank); nog["general_skills"] = []; nog["common_mistakes"] = []
+    nog.setdefault("metadata", {})["variant"] = "no_general_skills_and_no_injected_mistakes (task-specific only in prompt)"
+    q = os.path.join(a.out, "skills_nogeneral.json")
+    json.dump(nog, open(q, "w"), indent=2, ensure_ascii=False); print("wrote", q)
     for cat in ts:
         print(f"{cat:22s} <- {DERANGEMENT[cat]:22s} ({len(ts[DERANGEMENT[cat]])} skills, ids {[s['skill_id'] for s in ts[DERANGEMENT[cat]]][:2]}...)")
     print("wrote", p)

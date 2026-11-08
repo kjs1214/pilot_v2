@@ -144,7 +144,7 @@ def main():
     ap.add_argument("--embedding_model", default="Qwen/Qwen3-Embedding-0.6B"); ap.add_argument("--task_specific_top_k", type=int, default=None)
     ap.add_argument("--skill_source", default="skillrl", choices=["skillrl", "procedural", "mismatch_proc"],
                     help="skillrl = bank given by --skills_json; procedural/mismatch_proc = environment-agnostic procedural skills (skills/procedural_skills.json)")
-    ap.add_argument("--perturb", default="none", choices=["none", "using", "moveto", "fromtake", "names"])
+    ap.add_argument("--perturb", default="none", choices=["none", "using", "moveto", "walkto", "fromtake", "names"])
     ap.add_argument("--names_map", default=None); ap.add_argument("--perturb_skills", action="store_true",
                     help="apply the names map to skill text too (recommended with --perturb names)")
     ap.add_argument("--max_steps", type=int, default=50); ap.add_argument("--temperature", type=float, default=0.4)
@@ -166,7 +166,8 @@ def main():
         if args.skill_source != "skillrl":
             args.skill_cond = {"procedural": "proc", "mismatch_proc": "proc_mismatch"}[args.skill_source]
         else:
-            args.skill_cond = "nosk" if not args.skills_json else ("mismatch" if "mismatch" in os.path.basename(args.skills_json) else "full")
+            b = os.path.basename(args.skills_json) if args.skills_json else ""
+            args.skill_cond = "nosk" if not b else ("mismatch" if "mismatch" in b else ("nogen" if "nogeneral" in b else "full"))
     skills_mem = None
     if args.skills_json and args.skill_source == "skillrl":
         assert args.skillrl_root, "set SKILLRL_ROOT or --skillrl_root (needed to load SkillRL's SkillsOnlyMemory)"

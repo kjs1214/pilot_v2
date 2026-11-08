@@ -23,17 +23,22 @@ COMMAND_RULES = {
     "using": [(r"^(clean|cool|heat) (.+?) with (.+)$", r"\1 \2 using \3")],
     "moveto": [(r"^go to (.+)$", r"move to \1")],
     "fromtake": [(r"^take (.+?) from (.+)$", r"from \2 take \1")],
+    # 'walk to' does not collide with any ALFWorld verb ('move X to Y' is the real put command in this ALFWorld
+    # version, so 'go to'->'move to' is a COLLIDING perturbation; keep 'moveto' only as a collision condition)
+    "walkto": [(r"^go to (.+)$", r"walk to \1")],
 }
 REVERSE_RULES = {
     "using": [(r"^(clean|cool|heat) (.+?) using (.+)$", r"\1 \2 with \3")],
     "moveto": [(r"^move to (.+)$", r"go to \1")],
     "fromtake": [(r"^from (.+?) take (.+)$", r"take \2 from \1")],
+    "walkto": [(r"^walk to (.+)$", r"go to \1")],
 }
 # What the ORIGINAL surface looks like (used by metrics to detect intrusion of training wording)
 ORIGINAL_FORM = {
     "using": re.compile(r"^(clean|cool|heat) .+ with .+$"),
     "moveto": re.compile(r"^go to .+$"),
     "fromtake": re.compile(r"^take .+ from .+$"),
+    "walkto": re.compile(r"^go to .+$"),
 }
 
 
@@ -47,7 +52,7 @@ def _apply(rules, s: str) -> str:
 
 class Perturbation:
     def __init__(self, kind: str = "none", names_map_path: Optional[str] = None):
-        assert kind in ("none", "using", "moveto", "fromtake", "names"), kind
+        assert kind in ("none", "using", "moveto", "walkto", "fromtake", "names"), kind
         self.kind = kind
         self.names: Dict[str, str] = {}
         if kind == "names":

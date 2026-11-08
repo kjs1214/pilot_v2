@@ -2,7 +2,7 @@
 # Usage: WORKSPACE_SLUG=<slug> nohup bash scripts/run_all.sh [surface|skillgap|calib|necessity|transfer|all] > runs/run_all.log 2>&1 &
 # Pauses the VESSL workspace when finished (or on error) if WORKSPACE_SLUG is set. Finished conditions are skipped on re-run.
 #
-#   surface   : (Q1) rl/sft/base x {none, using, moveto, fromtake, names}, SkillRL bank, template mode
+#   surface   : (Q1) rl/sft/base x {none, using, walkto, moveto(collides with ALFWorld 'move X to Y'), fromtake, names}
 #   skillgap  : (Q2) rl/sft x {5 envs} no skills; x {none, moveto, names} mismatched skills; + procedural skills on {none, names}
 #   calib     : untrained reference (Qwen3-30B-A3B) x the same perturbations, with and without skills
 #   necessity : ALFWorld, EMBEDDING retrieval: library variants (full / minus RETIRE_CATS / +duplicates) x top-k  -> slot competition
@@ -36,24 +36,25 @@ alf () {  # tag perturb cond(full|nosk|mismatch|proc|proc_mismatch) [extra...]
   local p=(); [ "$pert" = names ] && p=($NAMES)
   echo "[$(ts)] alfworld $tag $pert $cond"
   python -m alfworld_eval.run_alfworld_eval --model "$(model_of $tag)" --tag "$tag" --split seen --reps "$REPS" \
-    "${a[@]}" --perturb "$pert" "${p[@]}" --max_games ${MAX_GAMES:-0} --save_think $(extra_of $tag) "$@" \
+    "${a[@]}" --perturb "$pert" "${p[@]}" --max_games ${MAX_GAMES:-0} --seed ${SEED:-0} --save_think $(extra_of $tag) "$@" \
     --out "$out.tmp" && mv "$out.tmp" "$out"
 }
 
 if [ "$PHASE" = surface ] || [ "$PHASE" = all ]; then
-  for tag in ${SURFACE_MODELS:-rl sft base}; do for p in none using moveto fromtake names; do alf $tag $p full; done; done
+  for tag in ${SURFACE_MODELS:-rl sft base}; do for p in ${SURFACE_PERTS:-none using walkto moveto fromtake names}; do alf $tag $p full; done; done
 fi
 if [ "$PHASE" = skillgap ] || [ "$PHASE" = all ]; then
   [ -f configs/skills_mismatched.json ] || python scripts/make_skill_variants.py --src "$SKILLS" --out configs
-  for tag in rl sft; do
-    for p in ${NOSK_PERTS:-none using moveto fromtake names}; do alf $tag $p nosk; done
-    for p in ${MISMATCH_PERTS:-none moveto names}; do alf $tag $p mismatch; done
+  for tag in ${SKILLGAP_MODELS:-rl sft}; do
+    for p in ${NOSK_PERTS:-none using walkto fromtake names}; do alf $tag $p nosk; done
+    for p in ${MISMATCH_PERTS:-none walkto names}; do alf $tag $p mismatch; done
     for p in ${PROC_PERTS:-none names}; do alf $tag $p proc; alf $tag $p proc_mismatch; done
   done
 fi
 if [ "$PHASE" = calib ] || [ "$PHASE" = all ]; then
-  for p in none using moveto fromtake names; do alf calib $p full; done
-  for p in ${CALIB_NOSK_PERTS:-none moveto names}; do alf calib $p nosk; done
+  for p in ${CALIB_PERTS:-none using walkto moveto fromtake names}; do alf calib $p full; done
+  for p in ${CALIB_NOSK_PERTS:-none walkto names}; do alf calib $p nosk; done
+  for p in ${CALIB_MISMATCH_PERTS:-none walkto names}; do alf calib $p mismatch; done
   for p in ${CALIB_PROC_PERTS:-none names}; do alf calib $p proc; alf calib $p proc_mismatch; done
 fi
 if [ "$PHASE" = necessity ] || [ "$PHASE" = all ]; then
@@ -68,7 +69,7 @@ if [ "$PHASE" = necessity ] || [ "$PHASE" = all ]; then
         if [ -s "$out" ]; then echo "[skip] $out"; continue; fi
         echo "[$(ts)] necessity $tag k=$k $name"
         python -m alfworld_eval.run_alfworld_eval --model "$(model_of $tag)" --tag "$tag" --split seen --reps "$REPS" \
-          --skills_json "$lib" --retrieval_mode embedding --top_k $k --perturb none --max_games ${MAX_GAMES:-0} \
+          --skills_json "$lib" --retrieval_mode embedding --top_k $k --perturb none --max_games ${MAX_GAMES:-0} --seed ${SEED:-0} \
           --save_think $(extra_of $tag) --out "$out.tmp" && mv "$out.tmp" "$out"
       done
     done
@@ -87,7 +88,7 @@ if [ "$PHASE" = transfer ] || [ "$PHASE" = all ]; then
           cookingworld) [ -n "${CW_PARAMS:-}" ] && envopt=(--game_params "$CW_PARAMS");;
         esac
         python run_eval.py --env $env --model "$(model_of $tag)" --tag $tag --skills $sk --split test \
-          --max_variations ${TRANSFER_VARS:-10} --reps "$REPS" --parallel ${PARALLEL:-8} --save_think $(extra_of $tag) \
+          --max_variations ${TRANSFER_VARS:-10} --reps "$REPS" --parallel ${PARALLEL:-8} --seed ${SEED:-0} --save_think $(extra_of $tag) \
           "${envopt[@]}" --out "$out.tmp" && mv "$out.tmp" "$out"
       done
     done

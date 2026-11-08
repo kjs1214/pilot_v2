@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common.prompting import History, build_prompt, parse_response
 from common.llm import make_llm
 from envs.adapters import get_adapter
-from skills.sources import ProceduralSkills, SkillRLRaw
+from skills.sources import ProceduralSkills, SkillRLRaw, GeneralOnly
 
 
 class Episode:
@@ -58,7 +58,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--env", required=True, choices=["scienceworld", "twc", "cookingworld"])
     ap.add_argument("--model", required=True); ap.add_argument("--tokenizer", default=None); ap.add_argument("--tag", required=True)
-    ap.add_argument("--skills", default="none", choices=["none", "procedural", "mismatch_proc", "skillrl_raw"])
+    ap.add_argument("--skills", default="none", choices=["none", "general", "procedural", "mismatch_proc", "skillrl_raw"])
     ap.add_argument("--skillrl_root", default=os.environ.get("SKILLRL_ROOT")); ap.add_argument("--skills_json", default=os.environ.get("SKILLS"))
     ap.add_argument("--tasks", default="boil,melt,freeze,change-the-state-of-matter-of", help="scienceworld task names")
     ap.add_argument("--split", default="test", choices=["train", "dev", "test"]); ap.add_argument("--max_variations", type=int, default=10)
@@ -78,9 +78,11 @@ def main():
     print(f"[{args.env}] {len(jobs)} episodes, skills={args.skills}", flush=True)
     proc = ProceduralSkills()
     raw = SkillRLRaw(args.skillrl_root, args.skills_json) if args.skills == "skillrl_raw" else None
+    gen = GeneralOnly(args.skills_json, skillrl_root=args.skillrl_root) if args.skills == "general" else None
 
     def skills_for(job):
         if args.skills == "none": return None, []
+        if args.skills == "general": return gen.text_and_ids()
         if args.skills in ("procedural", "mismatch_proc"):
             mm = args.skills == "mismatch_proc"
             return proc.text(ad.name, job["task_key"], mismatch=mm), proc.ids(ad.name, job["task_key"], mismatch=mm)

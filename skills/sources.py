@@ -54,6 +54,34 @@ class ProceduralSkills:
         return m.get(task_key, m.get("*"))
 
 
+class GeneralOnly:
+    """The ALFWorld general skills exactly as SkillRL's template mode injects them (first top_k, same text and header)."""
+
+    def __init__(self, skills_json: str, top_k: int = 6, n_mistakes: int = 5, skillrl_root: str = None):
+        bank = json.load(open(skills_json))
+        self.items = bank["general_skills"][:top_k]
+        self.mistakes = bank["common_mistakes"][:n_mistakes]
+        self.root = skillrl_root
+
+    def text_and_ids(self):
+        # format exactly like SkillRL's format_for_prompt for these two sections (general + mistakes)
+        if self.root:
+            try:
+                import sys, os
+                sys.path.insert(0, os.path.dirname(HERE))
+                from common.skills_loader import load_skills_only_memory
+                SOM = load_skills_only_memory(self.root)
+                mem = SOM.__new__(SOM)
+                txt = SOM.format_for_prompt(mem, {"general_skills": self.items, "task_specific_skills": [], "mistakes_to_avoid": self.mistakes,
+                                                  "task_type": "", "retrieval_mode": "template"})
+                return txt, [s["skill_id"] for s in self.items] + [m["mistake_id"] for m in self.mistakes]
+            except Exception:
+                pass
+        lines = ["### General Principles"] + [f"- **{s['title']}**: {s['principle']}" for s in self.items]
+        lines += ["", "### Mistakes to Avoid"] + [f"- **Don't**: {m['description']}\n  **Instead**: {m['how_to_avoid']}" for m in self.mistakes]
+        return "\n".join(lines), [s["skill_id"] for s in self.items] + [m["mistake_id"] for m in self.mistakes]
+
+
 class SkillRLRaw:
     """SkillRL bank in template mode with a forced ALFWorld category (for non-ALFWorld envs)."""
 

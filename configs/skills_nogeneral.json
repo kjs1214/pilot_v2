@@ -1,0 +1,241 @@
+{
+  "general_skills": [],
+  "task_specific_skills": {
+    "pick_and_place": [
+      {
+        "skill_id": "pic_001",
+        "title": "Systematic First-Pass Search",
+        "principle": "Maintain a checklist of all visible and closed containers/surfaces; open or inspect each unseen candidate exactly once before revisiting any location.",
+        "when_to_apply": "After reading the goal and before acquiring every required object."
+      },
+      {
+        "skill_id": "pic_002",
+        "title": "Grab When Seen",
+        "principle": "Whenever a needed object is visible and reachable, immediately take it before moving elsewhere—do not leave targets uncollected.",
+        "when_to_apply": "Upon first sight of an unheld object that matches the goal specification."
+      },
+      {
+        "skill_id": "pic_003",
+        "title": "Transform Before Transport",
+        "principle": "If the goal specifies a state change (e.g., heated, cooled, cleaned), perform the transformation at the nearest appropriate appliance before heading to the final destination.",
+        "when_to_apply": "Right after acquiring an object that must change state."
+      },
+      {
+        "skill_id": "pic_004",
+        "title": "Place Before More Search",
+        "principle": "When holding any goal object and the target location is known and reachable, navigate there and place it immediately, then resume searching if more items are needed.",
+        "when_to_apply": "While carrying a required object and the destination has been identified."
+      },
+      {
+        "skill_id": "pic_005",
+        "title": "Track Counts for Multiples",
+        "principle": "Maintain a tally of how many target objects are required, held, and already placed; stop searching only after the placed count meets the goal.",
+        "when_to_apply": "Throughout tasks demanding two or more instances of the same object."
+      }
+    ],
+    "look_at_obj_in_light": [
+      {
+        "skill_id": "loo_001",
+        "title": "Seek Lamp Surfaces First",
+        "principle": "Head straight to furniture that commonly hosts a desklamp (desk, sidetable, nightstand) because the target must end up under that light.",
+        "when_to_apply": "Right after parsing a look-at-object-under-desklamp goal."
+      },
+      {
+        "skill_id": "loo_002",
+        "title": "Switch Lamp On",
+        "principle": "Issue 'use desklamp' as soon as you reach it so the light condition is satisfied before or immediately after handling the target object.",
+        "when_to_apply": "Upon arriving at a desklamp that is currently off."
+      },
+      {
+        "skill_id": "loo_003",
+        "title": "Acquire Or Fetch Target",
+        "principle": "If the target is on the lit surface, 'take' it; if found elsewhere, pick it up and carry it back to the lit lamp area.",
+        "when_to_apply": "Whenever the target object becomes visible, whether under the lamp or not."
+      },
+      {
+        "skill_id": "loo_004",
+        "title": "Systematic Surface Search",
+        "principle": "On each candidate lamp surface, look, open nearby containers/drawers once, then move on—ensuring all plausible lamp locations are covered.",
+        "when_to_apply": "After the lamp at the current surface is on and the target hasn’t been found."
+      },
+      {
+        "skill_id": "loo_005",
+        "title": "Prevent Action Loops",
+        "principle": "Avoid toggling the same lamp or re-examining the same empty spot; if no progress after one full check, relocate to a new plausible lamp location.",
+        "when_to_apply": "When repeated identical actions yield no new observations or objects."
+      }
+    ],
+    "clean": [
+      {
+        "skill_id": "cle_001",
+        "title": "Phase-Ordered Plan",
+        "principle": "Always execute clean tasks in the fixed sequence: 1) locate & acquire target object, 2) bring it to an available water source/sink to clean, 3) navigate to final location, 4) place object.",
+        "when_to_apply": "As soon as the goal specifies the object must be clean before placement."
+      },
+      {
+        "skill_id": "cle_002",
+        "title": "Pick Before You Wander",
+        "principle": "If the target object is visible or discovered, take it immediately; never leave it behind to explore other places, as possession enables direct cleaning and prevents redundant searches.",
+        "when_to_apply": "After visually confirming the presence of the target object on any surface or inside an opened container."
+      },
+      {
+        "skill_id": "cle_003",
+        "title": "Sink First for Cleaning",
+        "principle": "Upon holding the target object, go straight to the nearest sink, basin, or faucet and issue the clean/use command before any placement attempts.",
+        "when_to_apply": "Once the target object is in hand and its required state is ‘clean’."
+      },
+      {
+        "skill_id": "cle_004",
+        "title": "Systematic Container Sweep",
+        "principle": "When the object isn’t found on open surfaces, iterate through all unopened or unexamined containers in the room before revisiting already-checked spots to avoid search loops.",
+        "when_to_apply": "After initial obvious surfaces are empty and the target object remains unfound."
+      },
+      {
+        "skill_id": "cle_005",
+        "title": "State Verification Before Drop",
+        "principle": "Always inspect or infer the object’s state after cleaning; if still not confirmed clean, re-clean before final placement to satisfy goal conditions.",
+        "when_to_apply": "Immediately after a cleaning action and before placing the object at its target location."
+      },
+      {
+        "skill_id": "cle_006",
+        "title": "Use Location Priors",
+        "principle": "Begin search at the most probable category-specific surfaces (e.g., kitchenware on countertop/stove, food on dining table) to minimize exploration steps and avoid aimless roaming.",
+        "when_to_apply": "At the very start of the task to choose the first search destination for the target object."
+      }
+    ],
+    "heat": [
+      {
+        "skill_id": "hea_001",
+        "title": "Secure Exact Target First",
+        "principle": "Always identify and pick up the exact object type named in the goal before interacting with the microwave or destination, ignoring look-alikes (e.g., don’t substitute a mug for a cup).",
+        "when_to_apply": "After spotting any candidate object or during initial search phase; before opening/using appliances."
+      },
+      {
+        "skill_id": "hea_002",
+        "title": "Systematic One-Pass Search",
+        "principle": "Search each plausible surface or closed container once by opening it and inspecting contents; mark searched spots mentally to avoid redundant revisits.",
+        "when_to_apply": "While locating the target object and you have not yet found it."
+      },
+      {
+        "skill_id": "hea_003",
+        "title": "Open Then Heat",
+        "principle": "Upon reaching the microwave with the target in hand, always open the door, place the object inside, and execute the heat action before leaving.",
+        "when_to_apply": "Immediately after navigating to the microwave with the target object held."
+      },
+      {
+        "skill_id": "hea_004",
+        "title": "No Appliance Before Object",
+        "principle": "Do not move to or interact with the microwave or final placement location until the target object is picked up, preventing wasted navigation steps.",
+        "when_to_apply": "Whenever you are tempted to head to microwave/destination without holding the required object."
+      },
+      {
+        "skill_id": "hea_005",
+        "title": "Direct Post-Heat Placement",
+        "principle": "After heating, navigate straight to the specified destination and place the object once, avoiding extra exploration or detours.",
+        "when_to_apply": "Right after the heating action completes and the object is in hand."
+      }
+    ],
+    "cool": [
+      {
+        "skill_id": "coo_001",
+        "title": "Systematic Object Hunt",
+        "principle": "Sweep every unvisited surface and open each closed container until the exact required object is found; never loop over already-checked empty spots.",
+        "when_to_apply": "Immediately after receiving a cool-task and before any object is held."
+      },
+      {
+        "skill_id": "coo_002",
+        "title": "Confirm Object Match",
+        "principle": "After picking up an item, verify it matches the requested type; if not, drop it and resume the search.",
+        "when_to_apply": "Whenever you acquire an object but the goal object is still unmet."
+      },
+      {
+        "skill_id": "coo_003",
+        "title": "Prep Cooling Appliance",
+        "principle": "Locate the fridge first and open it so it’s ready for use before or immediately after grabbing the target object.",
+        "when_to_apply": "As soon as the fridge comes into view or right after acquiring the target object."
+      },
+      {
+        "skill_id": "coo_004",
+        "title": "Enforce Cooling Before Placement",
+        "principle": "Do not place the target object in its final location until you have successfully executed a cooling action with the fridge.",
+        "when_to_apply": "When holding the correct object and before any placement action is attempted."
+      },
+      {
+        "skill_id": "coo_005",
+        "title": "Direct Post-Cooling Delivery",
+        "principle": "Once the object is cooled, navigate straight to the destination and place it without extraneous detours or re-searching.",
+        "when_to_apply": "Right after the cooling action succeeds."
+      }
+    ],
+    "examine": [
+      {
+        "skill_id": "exa_001",
+        "title": "Pair Objects Early",
+        "principle": "When both the target and desklamp are seen on the same surface, immediately pick up (or leave) the target there and use the desklamp without moving elsewhere.",
+        "when_to_apply": "Upon first observation that [Target_Object] and desklamp share the current location."
+      },
+      {
+        "skill_id": "exa_002",
+        "title": "Grab Target First",
+        "principle": "If you see the target but not the desklamp yet, take the target immediately so you can carry it to wherever the desklamp is found.",
+        "when_to_apply": "Target object is visible and not yet held, while desklamp’s location is unknown."
+      },
+      {
+        "skill_id": "exa_003",
+        "title": "Shortcut To Tool",
+        "principle": "Once holding the target, navigate straight to the nearest known desklamp and issue a single USE command—no intervening searches or detours.",
+        "when_to_apply": "Target object is in inventory and at least one desklamp location is known."
+      },
+      {
+        "skill_id": "exa_004",
+        "title": "Single Toggle Rule",
+        "principle": "Use (toggle) the desklamp only after the target is in hand or co-located; avoid repeated or premature toggles that waste steps.",
+        "when_to_apply": "About to interact with a desklamp during an examine task."
+      },
+      {
+        "skill_id": "exa_005",
+        "title": "Explore New Surfaces",
+        "principle": "If either the target or the desklamp hasn’t been found, systematically check unvisited surfaces/containers instead of re-inspecting places already confirmed empty.",
+        "when_to_apply": "Location of required object remains unknown after current area is exhausted."
+      },
+      {
+        "skill_id": "exa_006",
+        "title": "Lock In Observed Items",
+        "principle": "After spotting either required object, do not leave without acting—pick it up (if target) or note its location (if desklamp) to prevent costly backtracking loops.",
+        "when_to_apply": "Just observed a required object during scanning of a surface or room."
+      }
+    ]
+  },
+  "common_mistakes": [],
+  "metadata": {
+    "source": "generated from ALFWorld trajectories using o3",
+    "total_memories_analyzed": 223,
+    "task_distribution": {
+      "pick_and_place": {
+        "success": 41,
+        "failure": 35
+      },
+      "look_at_obj_in_light": {
+        "success": 12,
+        "failure": 9
+      },
+      "clean": {
+        "success": 17,
+        "failure": 19
+      },
+      "heat": {
+        "success": 14,
+        "failure": 18
+      },
+      "cool": {
+        "success": 19,
+        "failure": 16
+      },
+      "examine": {
+        "success": 10,
+        "failure": 13
+      }
+    },
+    "variant": "no_general_skills_and_no_injected_mistakes (task-specific only in prompt)"
+  }
+}

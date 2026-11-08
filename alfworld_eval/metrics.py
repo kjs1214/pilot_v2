@@ -21,6 +21,7 @@ from alfworld_eval.perturb import ORIGINAL_FORM
 
 THINK_PATTERNS = {"using": re.compile(r"\b(heat|cool|clean)\b[^.\n]{0,30}\bwith\b"),
                   "moveto": re.compile(r"\bgo to\b"),
+                  "walkto": re.compile(r"\bgo to\b"),
                   "fromtake": re.compile(r"\btake\b[^.\n]{0,30}\bfrom\b")}
 
 
@@ -242,7 +243,7 @@ def key_contrasts(groups, margin, names):
     print("\n--- Q2 (main): small with/without-skill gap in the original env, but a large gap after the surface change? ---")
     print("[D] skill gap = success(A) - success(B) for pairs (A,B): (full,nosk) (full,mismatch) (proc,proc_mismatch) (proc,nosk)")
     print("    columns: gap in original env | gap in perturbed env | change (pert - none). change > 0 = skills matter more after the change")
-    PAIRS = [("full", "nosk"), ("full", "mismatch"), ("proc", "proc_mismatch"), ("proc", "nosk")]
+    PAIRS = [("full", "nogen"), ("full", "nosk"), ("full", "mismatch"), ("proc", "proc_mismatch"), ("proc", "nosk")]
     def gap_rows(tr, A, B, p):
         need = [(tr, q, c) for q in ("none", p) for c in (A, B)]
         G = {n: gl(n[0], n[1], n[2]) for n in need}
@@ -291,6 +292,26 @@ def key_contrasts(groups, margin, names):
                 d = [gf[x] - gb[x] for x in g]; ci = boot_ci(d)
                 row.append(f"{t}={np.mean(d):+.2f}[{ci[0]:+.2f},{ci[1]:+.2f}](n={len(g)})")
             print(f"    {tr:4s} full-{B:8s} " + "  ".join(row))
+    print("\n[G] per task type: skill gap change under each perturbation (types with a small original gap are the")
+    print("    retirement candidates; Q2 predicts their gap grows after the change). pairs full-nosk, full-mismatch")
+    for tr in ("rl", "calib"):
+        for B in ("nosk", "mismatch"):
+            for p in perts:
+                keys = [(tr, "seen", q, c) for q in ("none", p) for c in ("full", B)]
+                if not all(k in groups for k in keys):
+                    continue
+                tt = {r["game_id"]: r["task_type"] for r in groups[keys[0]]}
+                G = {k: game_level(groups[k]) for k in keys}
+                row = []
+                for t_ in sorted(set(tt.values())):
+                    g = [x for x in tt if tt[x] == t_ and all(x in G[k] for k in keys)]
+                    if not g: continue
+                    ch = [(G[keys[2]][x] - G[keys[3]][x]) - (G[keys[0]][x] - G[keys[1]][x]) for x in g]
+                    g0 = np.mean([G[keys[0]][x] - G[keys[1]][x] for x in g]); ci = boot_ci(ch)
+                    flag = "*" if ci[0] > 0 else ""
+                    row.append(f"{t_}:none{g0:+.2f}/chg{np.mean(ch):+.2f}[{ci[0]:+.2f},{ci[1]:+.2f}]{flag}")
+                print(f"    {tr:5s} full-{B:8s} {p:9s} " + "  ".join(row))
+    print("    (* = change CI above 0)")
     print("\n--- secondary ---")
     print("[E] (secondary) where it arises: (rl pert-none) - (sft pert-none), <0 = RL stage adds to the break")
     for p in perts:
