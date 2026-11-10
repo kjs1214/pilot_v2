@@ -167,7 +167,7 @@ def main():
             args.skill_cond = {"procedural": "proc", "mismatch_proc": "proc_mismatch"}[args.skill_source]
         else:
             b = os.path.basename(args.skills_json) if args.skills_json else ""
-            LABELS = [("mismatch", "mismatch"), ("nogeneral6", "nogen6"), ("nogeneral", "nogen"), ("genonly6", "genonly6"), ("genonly", "genonly")]
+            LABELS = [("mismatch", "mismatch"), ("nogeneral6", "nogen6"), ("nogeneral", "nogen"), ("genonly6", "genonly6"), ("genonly", "genonly"), ("placebo", "placebo")]
             args.skill_cond = "nosk" if not b else next((lab for key, lab in LABELS if key in b), "full")
     skills_mem = None
     if args.skills_json and args.skill_source == "skillrl":

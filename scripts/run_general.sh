@@ -17,7 +17,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.." && source scripts/env.sh
 OUT=${OUT:-runs_gen}; SEEDS=${SEEDS:-0 1 2}; MODELS=${MODELS:-rl calib}
 mkdir -p "$OUT/alfworld" "$OUT/transfer"
-{ [ -f configs/skills_nogeneral.json ] && [ -f configs/skills_nogeneral6.json ] && [ -f configs/skills_genonly.json ] && [ -f configs/skills_genonly6.json ]; } || python scripts/make_skill_variants.py --src "$SKILLS" --out configs
+{ [ -f configs/skills_nogeneral.json ] && [ -f configs/skills_nogeneral6.json ] && [ -f configs/skills_genonly.json ] && [ -f configs/skills_genonly6.json ] && [ -f configs/skills_placebo.json ]; } || python scripts/make_skill_variants.py --src "$SKILLS" --out configs
 pause_ws () { if [ -n "${WORKSPACE_SLUG:-}" ]; then vesslctl workspace pause "$WORKSPACE_SLUG"; fi; }
 trap pause_ws EXIT
 model_of () { case $1 in rl) echo "$RL";; base) echo "$BASE";; calib) echo "$CALIB";; esac; }
@@ -35,6 +35,7 @@ for seed in $SEEDS; do
           nogen6) skarg=(--skills_json configs/skills_nogeneral6.json);;
           genonly) skarg=(--skills_json configs/skills_genonly.json);;
           genonly6) skarg=(--skills_json configs/skills_genonly6.json);;
+          placebo) skarg=(--skills_json configs/skills_placebo.json);;   # WebShop general skills + mistakes: same format, unrelated content
           nosk) skarg=();;
           *) echo "unknown bank $bank"; exit 1;;
         esac

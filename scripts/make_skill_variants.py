@@ -15,7 +15,7 @@ DERANGEMENT = {"pick_and_place": "clean", "clean": "heat", "heat": "cool", "cool
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--src", required=True); ap.add_argument("--out", default="configs")
+    ap = argparse.ArgumentParser(); ap.add_argument("--src", required=True); ap.add_argument("--out", default="configs"); ap.add_argument("--placebo_src", default=None)
     a = ap.parse_args()
     bank = json.load(open(a.src))
     ts = bank["task_specific_skills"]
@@ -46,6 +46,20 @@ def main():
     go6["metadata"]["variant"] = "general_skills_only (no task-specific, no mistakes)"
     json.dump(go6, open(os.path.join(a.out, "skills_genonly6.json"), "w"), indent=2, ensure_ascii=False)
     print("wrote", os.path.join(a.out, "skills_genonly.json"), "and skills_genonly6.json")
+    # placebo for the format-vs-content control: the 6 general skills + 5 mistakes that SkillRL injects in WEBSHOP
+    # (same generator, same format, similar length, unrelated to ALFWorld), with no task-specific skills.
+    psrc = a.placebo_src or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(a.src))), "webshop", "claude_style_skills.json")
+    if os.path.exists(psrc):
+        wb = json.load(open(psrc))
+        pl = copy.deepcopy(bank)
+        pl["general_skills"] = [dict(s, skill_id="plc_" + s["skill_id"]) for s in wb["general_skills"][:6]]
+        pl["common_mistakes"] = [dict(m, mistake_id="plc_" + m["mistake_id"]) for m in wb["common_mistakes"][:5]]
+        pl["task_specific_skills"] = {cat: [] for cat in ts}
+        pl.setdefault("metadata", {})["variant"] = "placebo: WebShop general skills (6) + mistakes (5), no task-specific"
+        json.dump(pl, open(os.path.join(a.out, "skills_placebo.json"), "w"), indent=2, ensure_ascii=False)
+        print("wrote", os.path.join(a.out, "skills_placebo.json"))
+    else:
+        print("WARNING: placebo source not found:", psrc)
     for cat in ts:
         print(f"{cat:22s} <- {DERANGEMENT[cat]:22s} ({len(ts[DERANGEMENT[cat]])} skills, ids {[s['skill_id'] for s in ts[DERANGEMENT[cat]]][:2]}...)")
     print("wrote", p)

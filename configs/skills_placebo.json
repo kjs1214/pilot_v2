@@ -1,0 +1,111 @@
+{
+  "general_skills": [
+    {
+      "skill_id": "plc_gen_001",
+      "title": "Prioritize Core Keywords",
+      "principle": "Include the product type, 1-2 key functional attributes, and any hard constraints (price, size, color) in the search query; omit secondary descriptors to avoid over-constraining.",
+      "when_to_apply": "Before issuing the first search or when refining an over-specific query that yields few/irrelevant results."
+    },
+    {
+      "skill_id": "plc_gen_002",
+      "title": "Iterative Query Refinement",
+      "principle": "If top results are irrelevant, adjust keywords (add/remove terms or use synonyms) or apply site filters instead of repeating the same query.",
+      "when_to_apply": "After a search results page shows mostly off-target items or repeats despite multiple identical searches."
+    },
+    {
+      "skill_id": "plc_gen_003",
+      "title": "Scan Before You Click",
+      "principle": "Read product titles, thumbnails, and prices in the results list to ensure the item plausibly meets core constraints before opening it.",
+      "when_to_apply": "On any search results page when deciding which product link to open next."
+    },
+    {
+      "skill_id": "plc_gen_004",
+      "title": "Verify Early, Abort Fast",
+      "principle": "On the product page, immediately check category, core attributes, and price; if a key constraint is violated, leave the page at once.",
+      "when_to_apply": "Within the first observation on every product detail page."
+    },
+    {
+      "skill_id": "plc_gen_005",
+      "title": "Set Mandatory Variants",
+      "principle": "Always select required variant options (size, color, capacity, etc.) before evaluating price or purchasing.",
+      "when_to_apply": "After confirming the product type matches and before any purchase action."
+    },
+    {
+      "skill_id": "plc_gen_006",
+      "title": "Confirm Hidden Attributes",
+      "principle": "Open the Description/Features section to ensure non-visible specs (e.g., material, wash method, slip resistance) meet constraints; skip item if unconfirmed.",
+      "when_to_apply": "When a constraint is not evident from the title, images, or variant list."
+    }
+  ],
+  "task_specific_skills": {
+    "pick_and_place": [],
+    "look_at_obj_in_light": [],
+    "clean": [],
+    "heat": [],
+    "cool": [],
+    "examine": []
+  },
+  "common_mistakes": [
+    {
+      "mistake_id": "plc_err_001",
+      "description": "Submitting a search query that omits key constraints (e.g., size or price cap), leading to an overwhelming or irrelevant result set.",
+      "why_it_happens": "The agent focuses on main keywords (product + attributes) and forgets secondary filters like price, size, or color.",
+      "how_to_avoid": "Always assemble the full requirement list first, then build the query so every mandatory constraint (category, attributes, price) is explicitly included."
+    },
+    {
+      "mistake_id": "plc_err_002",
+      "description": "Using overly specific or uncommon color/variant names in the initial search, returning zero or few results.",
+      "why_it_happens": "Agents translate the user-given color directly into the query without considering site vocabulary or synonyms.",
+      "how_to_avoid": "Start with broader color families (e.g., \"red\" instead of \"dusty blush\") and narrow down with on-page filters once results appear."
+    },
+    {
+      "mistake_id": "plc_err_003",
+      "description": "Selecting a visually similar but wrong product category (e.g., picking dress pants instead of dress shirts).",
+      "why_it_happens": "Thumbnail images can be misleading and the agent may rely solely on visual similarity without verifying category metadata.",
+      "how_to_avoid": "Cross-check product titles and breadcrumb/category labels against the requested category before clicking or purchasing."
+    },
+    {
+      "mistake_id": "plc_err_004",
+      "description": "Failing to notice that the displayed price changes after selecting the required size or color, causing budget overruns.",
+      "why_it_happens": "Agents often check price only on the default variant and assume it persists across all options.",
+      "how_to_avoid": "After every option change (size, color, etc.) re-read the price element and abort if it exceeds the budget."
+    },
+    {
+      "mistake_id": "plc_err_005",
+      "description": "Adding an item to cart without first setting mandatory variant options, triggering errors or adding an unintended default variant.",
+      "why_it_happens": "The agent clicks “Buy Now” immediately because the button is visible and enabled, overlooking required selections.",
+      "how_to_avoid": "Before purchasing, validate that every required dropdown/radio option (size, color, length, pack count) has been explicitly selected."
+    }
+  ],
+  "metadata": {
+    "source": "generated from ALFWorld trajectories using o3",
+    "total_memories_analyzed": 223,
+    "task_distribution": {
+      "pick_and_place": {
+        "success": 41,
+        "failure": 35
+      },
+      "look_at_obj_in_light": {
+        "success": 12,
+        "failure": 9
+      },
+      "clean": {
+        "success": 17,
+        "failure": 19
+      },
+      "heat": {
+        "success": 14,
+        "failure": 18
+      },
+      "cool": {
+        "success": 19,
+        "failure": 16
+      },
+      "examine": {
+        "success": 10,
+        "failure": 13
+      }
+    },
+    "variant": "placebo: WebShop general skills (6) + mistakes (5), no task-specific"
+  }
+}

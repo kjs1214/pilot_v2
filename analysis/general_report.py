@@ -5,6 +5,8 @@ Report for scripts/run_general.sh.
 (1a) ALFWorld, task-specific skills kept: effect of REMOVING general guidance = success(full) - success(nogen | nogen6)
 (1b) ALFWorld, no task-specific skills (matched to other datasets): effect of ADDING general guidance
        = success(genonly | genonly6) - success(nosk)
+(1c) Content or format: success(genonly) - success(placebo); placebo = 11 unrelated items in the same format
+(1d) Trained vs untrained: effect(calib) - effect(rl), paired by game, for the removing and the adding comparison
 (2)  Other datasets: effect of ADDING the same general guidance = (general | general6) - none
 (3)  Verdict against the pre-registered Step 2 criteria (judged on the 11-item condition):
        (i)  ALFWorld (1b): effect <= +0.03 and CI upper <= +0.06      -> guidance not needed where it was learned
@@ -33,10 +35,11 @@ def boot(v, n=4000, seed=0):
 def load_alf(out):
     D = defaultdict(lambda: defaultdict(dict))   # (tag, split, bank) -> seed -> game -> success
     for f in glob.glob(os.path.join(out, "alfworld", "*.jsonl")):
-        m = re.match(r"(\w+?)_(seen|unseen)_(full|nogen6|nogen|genonly6|genonly|nosk)_s(\d+)\.jsonl", os.path.basename(f))
+        m = re.match(r"(\w+?)_(seen|unseen)_(full|nogen6|nogen|genonly6|genonly|placebo|nosk)_s(\d+)\.jsonl", os.path.basename(f))
         if not m: continue
         tag, split, bank, seed = m.groups()
-        for l in open(f):
+        with open(f) as fh: lines = fh.readlines()
+        for l in lines:
             r = json.loads(l); D[(tag, split, bank)][seed][r["game_id"]] = (float(r["success"]), r["task_type"])
     return D
 
@@ -47,7 +50,8 @@ def load_tr(out):
         m = re.match(r"(\w+?)_(\w+?)_(none|general6|general)_s(\d+)\.jsonl", os.path.basename(f))
         if not m: continue
         env, tag, sk, seed = m.groups()
-        for l in open(f):
+        with open(f) as fh: lines = fh.readlines()
+        for l in lines:
             r = json.loads(l)
             sc = max(float(r["score"]), 0.0) / (100.0 if env == "scienceworld" else 1.0)
             D[(env, tag, sk)][seed][(r["task_key"], r["variation"])] = (float(r["success"]), sc)
@@ -110,10 +114,10 @@ def main():
             print("        by type: " + by_type(f, ks, mh, ml))
 
     print("\n=== (1b) ALFWorld, NO task-specific skills (matched to other datasets): effect of ADDING general guidance: success(cond) - success(nosk) ===")
-    print("    genonly = 11 items only   |   genonly6 = the 6 general skills only   |   nosk = no skills at all")
+    print("    genonly = 11 items only   |   genonly6 = the 6 general skills only   |   placebo = 11 unrelated items, same format   |   nosk = no skills at all")
     alf_add = {}
     for (tag, split) in tags_splits:
-        for cond in ("genonly", "genonly6"):
+        for cond in ("genonly", "genonly6", "placebo"):
             g, n = A.get((tag, split, cond)), A.get((tag, split, "nosk"))
             if not g or not n: continue
             e, ci, k, mh_, ml_, ks, mh, ml = effect(g, n)
@@ -121,6 +125,31 @@ def main():
             print(f"  {tag:5s} {split:6s} {cond:8s} seeds={len(g)} n={k}  nosk {ml_:.3f}  {cond} {mh_:.3f}  effect {e:+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]"
                   f"  | noise nosk {noise(n):.2f} {cond} {noise(g):.2f}")
             print("        by type: " + by_type(g, ks, mh, ml))
+
+    print("\n=== (1c) Content or format? ALFWorld, no task-specific skills: success(genonly) - success(placebo) ===")
+    print("    placebo = SkillRL's WebShop general skills + mistakes (same format and length, unrelated content)")
+    printed = False
+    for (tag, split) in tags_splits:
+        g, pl = A.get((tag, split, "genonly")), A.get((tag, split, "placebo"))
+        if not g or not pl: continue
+        e, ci, k, mh_, ml_, *_ = effect(g, pl)
+        print(f"  {tag:5s} {split:6s} seeds={min(len(g), len(pl))} n={k}  placebo {ml_:.3f}  genonly {mh_:.3f}  effect {e:+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]"); printed = True
+    if not printed: print("  (placebo not measured in this folder)")
+
+    print("\n=== (1d) Trained vs untrained model: difference of effects, paired by game: effect(calib) - effect(rl) ===")
+    print("    > 0 with CI above 0: the untrained model needs the guidance more than the trained one")
+    printed = False
+    for split in sorted({k[1] for k in A}):
+        for hi, lo, label in (("full", "nogen", "removing 11 (task-specific kept): full - nogen"),
+                              ("genonly", "nosk", "adding 11 (no task-specific): genonly - nosk")):
+            parts = [A.get((t, split, c)) for t in ("calib", "rl") for c in (hi, lo)]
+            if not all(parts): continue
+            m = [per_unit_mean(x) for x in parts]; ks = sorted(set(m[0]) & set(m[1]) & set(m[2]) & set(m[3]))
+            if not ks: continue
+            d = [(m[0][k] - m[1][k]) - (m[2][k] - m[3][k]) for k in ks]; ci = boot(d)
+            ec = float(np.mean([m[0][k] - m[1][k] for k in ks])); er = float(np.mean([m[2][k] - m[3][k] for k in ks]))
+            print(f"  {split:6s} {label:48s} n={len(ks)}  calib {ec:+.3f}  rl {er:+.3f}  difference {np.mean(d):+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]"); printed = True
+    if not printed: print("  (needs both rl and calib results for the same condition in this folder)")
 
     print("\n=== (2) Other datasets: effect of ADDING the same general guidance: success/score(cond) - (none) ===")
     print("    general = 11 items   |   general6 = the 6 general skills only")

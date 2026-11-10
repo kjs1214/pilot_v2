@@ -25,14 +25,20 @@ Skill을 프롬프트에 넣어 RL로 학습한 에이전트는 학습한 데이
 |---|---|---|
 | Step 1 | ALFWorld에서 과제별 Skill은 두고 일반 지침만 빼기 (RL, seed 3) | 통과. seen +0.012 [−0.024, +0.048], unseen +0.017 [−0.025, +0.060] |
 | Step 1 대조 | 같은 실험을 미학습 모델(calib)로 | 11개를 빼면 +0.050 [+0.014, +0.086] 하락. 쓸모 있는 지침이다 |
-| Step 2 | 세 단계 조건을 ALFWorld와 다른 데이터셋에서 | 진행 중 |
+| Step 2 예비 (RL, seed 1) | ALFWorld에서 과제별 Skill 없이 일반 지침 넣기 | Skill 없음 0.593 → 11개 0.743 (+0.150 [+0.057, +0.236]). 조건 ① 불충족 |
+| Step 2 예비 (RL, seed 1) | 다른 데이터셋(기본 설정)에 일반 지침 넣기 | TWC·CookingWorld·ScienceWorld 모두 넣어도 성공 0. 판정 불가 |
+
+해석: Step 1에서 일반 지침을 빼도 그대로였던 것은 내재화의 증거가 아니다. 과제별 Skill이 없으면 일반 지침이 다시 필요하다.
+SkillRL bank의 과제별 Skill에는 일반 Skill과 같은 내용이 들어 있다(예: gen_002 "Immediate Acquisition"과 pic_002 "Grab When Seen").
 
 ## 3. 세 단계 조건
 
-| | Skill 없음 | 일반 6만 | 11개 (일반 6 + 실수 5) |
-|---|---|---|---|
-| ALFWorld (`BANKS`) | `nosk` | `genonly6` | `genonly` |
-| 다른 데이터셋 (`TRANSFER_SKILLS`) | `none` | `general6` | `general` |
+| | Skill 없음 | 일반 6만 | 11개 (일반 6 + 실수 5) | 위약 (무관한 11개) |
+|---|---|---|---|---|
+| ALFWorld (`BANKS`) | `nosk` | `genonly6` | `genonly` | `placebo` |
+| 다른 데이터셋 (`TRANSFER_SKILLS`) | `none` | `general6` | `general` | - |
+
+위약은 SkillRL이 WebShop에서 주입하는 일반 Skill 6개와 실수 5개다. 형식과 길이는 같고 내용은 ALFWorld와 무관하다. Skill 칸이 있기만 해도 성능이 오르는지(형식 효과)를 가린다.
 
 - "일반 6"은 SkillRL bank의 `general_skills` 앞 6개, "실수 5"는 `common_mistakes` 앞 5개다. SkillRL이 실제로 주입하는 것들이다.
 - ALFWorld에 넣는 텍스트와 다른 데이터셋에 넣는 텍스트는 글자 단위로 같다.
@@ -92,6 +98,8 @@ python analysis/failure_modes.py "runs_s2mini_default/transfer/*.jsonl"
 |---|---|
 | (1a) | ALFWorld, 과제별 Skill 있음: 일반 지침을 뺐을 때의 효과 (Step 1) |
 | (1b) | ALFWorld, 과제별 Skill 없음: 일반 지침을 넣었을 때의 효과 |
+| (1c) | 내용인가 형식인가: 11개 − 위약 |
+| (1d) | 학습 모델과 미학습 모델의 효과 차이 (게임 단위로 짝지음) |
 | (2) | 다른 데이터셋: 일반 지침을 넣었을 때의 효과 |
 | (3) | 조건 ①②에 대한 판정 (`MET` / `NOT met` / 바닥) |
 | (4) | 짝지은 비교: 각 데이터셋을 절차가 겹치는 ALFWorld 유형 옆에 놓는다 (추가 로그) |
@@ -143,7 +151,7 @@ train/                    SkillRL 이어 학습 스크립트 (연구실 GPU용)
 | `SEEDS` | `0 1 2` | 반복 seed |
 | `MODELS` | `rl calib` | `rl`, `calib`, `base` |
 | `SPLITS` | `seen unseen` | ALFWorld 분할. `""`이면 ALFWorld 생략 |
-| `BANKS` | `full nogen` | ALFWorld Skill 조건. 과제별 있음: `full` `nogen` `nogen6` / 과제별 없음: `nosk` `genonly6` `genonly` |
+| `BANKS` | `full nogen` | ALFWorld Skill 조건. 과제별 있음: `full` `nogen` `nogen6` / 과제별 없음: `nosk` `genonly6` `genonly` `placebo` |
 | `TRANSFER_ENVS` | `twc cookingworld scienceworld` | 다른 데이터셋. `""`이면 생략 |
 | `TRANSFER_SKILLS` | `none general6 general` | 다른 데이터셋 Skill 조건 |
 | `TRANSFER_VARS` | 20 | 환경별 변형 수 (ScienceWorld는 과제당 9개가 상한) |
