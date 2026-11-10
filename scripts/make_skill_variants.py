@@ -32,6 +32,11 @@ def main():
     nog.setdefault("metadata", {})["variant"] = "no_general_skills_and_no_injected_mistakes (task-specific only in prompt)"
     q = os.path.join(a.out, "skills_nogeneral.json")
     json.dump(nog, open(q, "w"), indent=2, ensure_ascii=False); print("wrote", q)
+    # SkillRL's official split: remove only general_skills, keep common_mistakes (template mode still injects the first 5)
+    nog6 = copy.deepcopy(bank); nog6["general_skills"] = []
+    nog6.setdefault("metadata", {})["variant"] = "no_general_skills_only (mistakes kept)"
+    q6 = os.path.join(a.out, "skills_nogeneral6.json")
+    json.dump(nog6, open(q6, "w"), indent=2, ensure_ascii=False); print("wrote", q6)
     for cat in ts:
         print(f"{cat:22s} <- {DERANGEMENT[cat]:22s} ({len(ts[DERANGEMENT[cat]])} skills, ids {[s['skill_id'] for s in ts[DERANGEMENT[cat]]][:2]}...)")
     print("wrote", p)

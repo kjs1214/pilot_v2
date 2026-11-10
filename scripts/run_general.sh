@@ -13,7 +13,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.." && source scripts/env.sh
 OUT=${OUT:-runs_gen}; SEEDS=${SEEDS:-0 1 2}; MODELS=${MODELS:-rl calib}
 mkdir -p "$OUT/alfworld" "$OUT/transfer"
-[ -f configs/skills_nogeneral.json ] || python scripts/make_skill_variants.py --src "$SKILLS" --out configs
+{ [ -f configs/skills_nogeneral.json ] && [ -f configs/skills_nogeneral6.json ]; } || python scripts/make_skill_variants.py --src "$SKILLS" --out configs
 pause_ws () { if [ -n "${WORKSPACE_SLUG:-}" ]; then vesslctl workspace pause "$WORKSPACE_SLUG"; fi; }
 trap pause_ws EXIT
 model_of () { case $1 in rl) echo "$RL";; base) echo "$BASE";; calib) echo "$CALIB";; esac; }
@@ -21,9 +21,9 @@ extra_of () { [ "$1" = calib ] && echo "--chat_template_kwargs {\"enable_thinkin
 for seed in $SEEDS; do
   for tag in $MODELS; do
     for split in ${SPLITS-seen unseen}; do
-      for bank in full nogen; do
+      for bank in ${BANKS:-full nogen}; do
         out="$OUT/alfworld/${tag}_${split}_${bank}_s${seed}.jsonl"; [ -s "$out" ] && continue
-        sk="$SKILLS"; [ $bank = nogen ] && sk=configs/skills_nogeneral.json
+        sk="$SKILLS"; [ $bank = nogen ] && sk=configs/skills_nogeneral.json; [ $bank = nogen6 ] && sk=configs/skills_nogeneral6.json
         echo "[$(date '+%F %T')] alfworld $tag $split $bank seed=$seed"
         python -m alfworld_eval.run_alfworld_eval --model "$(model_of $tag)" --tag $tag --split $split --reps 1 --seed $seed \
           --skills_json "$sk" --perturb none --max_games ${MAX_GAMES:-0} --save_think $(extra_of $tag) --out "$out.tmp" && mv "$out.tmp" "$out"

@@ -26,7 +26,7 @@ def boot(v, n=4000, seed=0):
 def load_alf(out):
     D = defaultdict(lambda: defaultdict(dict))   # (tag, split, bank) -> seed -> game -> success
     for f in glob.glob(os.path.join(out, "alfworld", "*.jsonl")):
-        m = re.match(r"(\w+?)_(seen|unseen)_(full|nogen)_s(\d+)\.jsonl", os.path.basename(f))
+        m = re.match(r"(\w+?)_(seen|unseen)_(full|nogen6|nogen)_s(\d+)\.jsonl", os.path.basename(f))
         if not m: continue
         tag, split, bank, seed = m.groups()
         for l in open(f):
@@ -67,15 +67,17 @@ def noise(seeds_dict, idx=0):
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else "runs_gen"
     A, T = load_alf(out), load_tr(out)
-    print("=== (1) ALFWorld: effect of REMOVING the general skills: success(full) - success(nogen) ===")
+    print("=== (1) ALFWorld: effect of REMOVING general guidance: success(full) - success(cond) ===")
+    print("    nogen  = general skills (6) + injected common mistakes (5) removed   |   nogen6 = only the 6 general skills removed (SkillRL's split)")
     alf_effect = {}
-    for (tag, split) in sorted({(k[0], k[1]) for k in A}):
-        f, n = A.get((tag, split, "full")), A.get((tag, split, "nogen"))
+    for (tag, split, cond) in sorted({(k[0], k[1], c) for k in A for c in ("nogen", "nogen6")}):
+        f, n = A.get((tag, split, "full")), A.get((tag, split, cond))
         if not f or not n: continue
         mf, mn = per_unit_mean(f), per_unit_mean(n); g = sorted(set(mf) & set(mn))
-        d = [mf[x] - mn[x] for x in g]; ci = boot(d); alf_effect[(tag, split)] = (np.mean(d), ci)
-        print(f"  {tag:5s} {split:6s} seeds={len(f)} n={len(g)}  full {np.mean([mf[x] for x in g]):.3f}  nogen {np.mean([mn[x] for x in g]):.3f}"
-              f"  effect {np.mean(d):+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]  | noise(flip rate same cond) full {noise(f):.2f} nogen {noise(n):.2f}")
+        d = [mf[x] - mn[x] for x in g]; ci = boot(d)
+        if cond == "nogen": alf_effect[(tag, split)] = (np.mean(d), ci)
+        print(f"  {tag:5s} {split:6s} {cond:6s} seeds={len(n)} n={len(g)}  full {np.mean([mf[x] for x in g]):.3f}  {cond} {np.mean([mn[x] for x in g]):.3f}"
+              f"  effect {np.mean(d):+.3f} [{ci[0]:+.3f},{ci[1]:+.3f}]  | noise(flip rate same cond) full {noise(f):.2f} {cond} {noise(n):.2f}")
         tt = {}
         for s in f.values():
             for k, v in s.items(): tt[k] = v[1]
