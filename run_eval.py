@@ -58,12 +58,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--env", required=True, choices=["scienceworld", "twc", "cookingworld"])
     ap.add_argument("--model", required=True); ap.add_argument("--tokenizer", default=None); ap.add_argument("--tag", required=True)
-    ap.add_argument("--skills", default="none", choices=["none", "general", "procedural", "mismatch_proc", "skillrl_raw"])
+    ap.add_argument("--skills", default="none", choices=["none", "general6", "general", "procedural", "mismatch_proc", "skillrl_raw"],
+                    help="general = SkillRL general skills (6) + injected common mistakes (5); general6 = the 6 general skills only")
     ap.add_argument("--skillrl_root", default=os.environ.get("SKILLRL_ROOT")); ap.add_argument("--skills_json", default=os.environ.get("SKILLS"))
     ap.add_argument("--tasks", default="boil,melt,freeze,change-the-state-of-matter-of", help="scienceworld task names")
     ap.add_argument("--split", default="test", choices=["train", "dev", "test"]); ap.add_argument("--max_variations", type=int, default=10)
     ap.add_argument("--reps", type=int, default=1); ap.add_argument("--simplifications", default="noElectricalAction")
-    ap.add_argument("--game_params", default=None, help="TextWorldExpress gameParams override")
+    ap.add_argument("--game_params", default=None,
+                    help="TextWorldExpress setting: preset 'default' (library default) | 'reduced' | 'easy', or a raw gameParams string")
+    ap.add_argument("--sw_list", default="held", choices=["held", "valid"],
+                    help="ScienceWorld action list: 'held' = valid actions, two-object actions only for held objects (validated by "
+                         "analysis/gold_check.py); 'valid' = raw valid list capped by --max_actions (first-experiment behaviour)")
+    ap.add_argument("--sw_tick_limit", type=int, default=0,
+                    help="ScienceWorld internal tick limit; 0 = same as --max_steps (library behaviour). A 'wait' costs 10 ticks.")
     ap.add_argument("--max_steps", type=int, default=50); ap.add_argument("--max_actions", type=int, default=150)
     ap.add_argument("--history_length", type=int, default=2); ap.add_argument("--temperature", type=float, default=0.4)
     ap.add_argument("--max_tokens", type=int, default=512); ap.add_argument("--tp", type=int, default=1)
@@ -78,11 +85,13 @@ def main():
     print(f"[{args.env}] {len(jobs)} episodes, skills={args.skills}", flush=True)
     proc = ProceduralSkills()
     raw = SkillRLRaw(args.skillrl_root, args.skills_json) if args.skills == "skillrl_raw" else None
-    gen = GeneralOnly(args.skills_json, skillrl_root=args.skillrl_root) if args.skills == "general" else None
+    gen = None
+    if args.skills == "general": gen = GeneralOnly(args.skills_json, skillrl_root=args.skillrl_root)
+    if args.skills == "general6": gen = GeneralOnly(args.skills_json, n_mistakes=0, skillrl_root=args.skillrl_root)
 
     def skills_for(job):
         if args.skills == "none": return None, []
-        if args.skills == "general": return gen.text_and_ids()
+        if args.skills in ("general", "general6"): return gen.text_and_ids()
         if args.skills in ("procedural", "mismatch_proc"):
             mm = args.skills == "mismatch_proc"
             return proc.text(ad.name, job["task_key"], mismatch=mm), proc.ids(ad.name, job["task_key"], mismatch=mm)

@@ -49,7 +49,7 @@ def main():
         for tag in ("base", "sft", "rl", "calib"):
             base = per_var(g[(tag, "none")]) if (tag, "none") in g else None
             if not base: continue
-            for src in ("procedural", "mismatch_proc", "skillrl_raw"):
+            for src in ("general6", "general", "procedural", "mismatch_proc", "skillrl_raw"):
                 if (tag, src) not in g: continue
                 o = per_var(g[(tag, src)]); common = sorted(set(base) & set(o))
                 d = [o[k] - base[k] for k in common]; ci = boot_ci(d)

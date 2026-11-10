@@ -167,7 +167,8 @@ def main():
             args.skill_cond = {"procedural": "proc", "mismatch_proc": "proc_mismatch"}[args.skill_source]
         else:
             b = os.path.basename(args.skills_json) if args.skills_json else ""
-            args.skill_cond = "nosk" if not b else ("mismatch" if "mismatch" in b else ("nogen6" if "nogeneral6" in b else ("nogen" if "nogeneral" in b else "full")))
+            LABELS = [("mismatch", "mismatch"), ("nogeneral6", "nogen6"), ("nogeneral", "nogen"), ("genonly6", "genonly6"), ("genonly", "genonly")]
+            args.skill_cond = "nosk" if not b else next((lab for key, lab in LABELS if key in b), "full")
     skills_mem = None
     if args.skills_json and args.skill_source == "skillrl":
         assert args.skillrl_root, "set SKILLRL_ROOT or --skillrl_root (needed to load SkillRL's SkillsOnlyMemory)"

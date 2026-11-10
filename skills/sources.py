@@ -78,7 +78,8 @@ class GeneralOnly:
             except Exception:
                 pass
         lines = ["### General Principles"] + [f"- **{s['title']}**: {s['principle']}" for s in self.items]
-        lines += ["", "### Mistakes to Avoid"] + [f"- **Don't**: {m['description']}\n  **Instead**: {m['how_to_avoid']}" for m in self.mistakes]
+        if self.mistakes:
+            lines += ["", "### Mistakes to Avoid"] + [f"- **Don't**: {m['description']}\n  **Instead**: {m['how_to_avoid']}" for m in self.mistakes]
         return "\n".join(lines), [s["skill_id"] for s in self.items] + [m["mistake_id"] for m in self.mistakes]
 
 

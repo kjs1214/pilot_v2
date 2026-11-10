@@ -37,6 +37,15 @@ def main():
     nog6.setdefault("metadata", {})["variant"] = "no_general_skills_only (mistakes kept)"
     q6 = os.path.join(a.out, "skills_nogeneral6.json")
     json.dump(nog6, open(q6, "w"), indent=2, ensure_ascii=False); print("wrote", q6)
+    # matched to the other-dataset comparison (where ALFWorld task-specific skills cannot be used):
+    #   genonly  = general skills + common mistakes, NO task-specific skills      genonly6 = the 6 general skills only
+    go = copy.deepcopy(bank); go["task_specific_skills"] = {cat: [] for cat in ts}
+    go.setdefault("metadata", {})["variant"] = "general_skills_and_mistakes_only (no task-specific)"
+    json.dump(go, open(os.path.join(a.out, "skills_genonly.json"), "w"), indent=2, ensure_ascii=False)
+    go6 = copy.deepcopy(go); go6["common_mistakes"] = []
+    go6["metadata"]["variant"] = "general_skills_only (no task-specific, no mistakes)"
+    json.dump(go6, open(os.path.join(a.out, "skills_genonly6.json"), "w"), indent=2, ensure_ascii=False)
+    print("wrote", os.path.join(a.out, "skills_genonly.json"), "and skills_genonly6.json")
     for cat in ts:
         print(f"{cat:22s} <- {DERANGEMENT[cat]:22s} ({len(ts[DERANGEMENT[cat]])} skills, ids {[s['skill_id'] for s in ts[DERANGEMENT[cat]]][:2]}...)")
     print("wrote", p)

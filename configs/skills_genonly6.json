@@ -1,0 +1,116 @@
+{
+  "general_skills": [
+    {
+      "skill_id": "gen_001",
+      "title": "Systematic Exploration",
+      "principle": "Search every plausible surface or container exactly once before revisiting; prioritize unopened or unseen locations to cover the whole room methodically.",
+      "when_to_apply": "Anytime the goal object count is not yet met and unexplored locations remain."
+    },
+    {
+      "skill_id": "gen_002",
+      "title": "Immediate Acquisition",
+      "principle": "As soon as a required object becomes visible and reachable, take it before moving elsewhere to avoid losing track or re-searching.",
+      "when_to_apply": "Upon first visual confirmation of a goal-relevant object."
+    },
+    {
+      "skill_id": "gen_003",
+      "title": "Destination First Policy",
+      "principle": "After picking up a goal object, navigate directly to the known target receptacle and place it before resuming further search.",
+      "when_to_apply": "Holding any goal object while its target location has been identified."
+    },
+    {
+      "skill_id": "gen_004",
+      "title": "Track Counts & Progress",
+      "principle": "Maintain an internal counter of how many goal objects are still needed; stop searching or terminate episode only when the counter reaches zero.",
+      "when_to_apply": "Throughout multi-instance tasks (e.g., “put two X…”)."
+    },
+    {
+      "skill_id": "gen_005",
+      "title": "Use State-Changing Tools Early",
+      "principle": "For tasks requiring heated/cooled/clean objects, acquire the object, then immediately use the nearest suitable appliance to change its state before any placement.",
+      "when_to_apply": "After picking up an object that must change temperature or cleanliness."
+    },
+    {
+      "skill_id": "gen_006",
+      "title": "Establish Spatial Relations",
+      "principle": "When a goal specifies a relation (under/inside/on), first locate the reference object, adjust its state if needed (e.g., turn lamp on), then search the specified spatial region for the target object or place it there.",
+      "when_to_apply": "Tasks containing spatial prepositions like under, inside, on, in_front_of."
+    },
+    {
+      "skill_id": "gen_007",
+      "title": "Open Before Judging Empty",
+      "principle": "Treat any closed container as unexplored; open it and inspect contents before deciding that the goal object is absent.",
+      "when_to_apply": "Encountering a closed drawer, cabinet, fridge, microwave, etc."
+    },
+    {
+      "skill_id": "gen_008",
+      "title": "Avoid Redundant Rechecks",
+      "principle": "Record which locations and containers have been fully inspected; do not revisit them unless new evidence suggests their contents changed.",
+      "when_to_apply": "After the first full pass of a location or when considering next search target."
+    },
+    {
+      "skill_id": "gen_009",
+      "title": "Plan with Landmarks",
+      "principle": "Continuously update and reference a map of known object and container locations to choose shortest paths and prevent aimless wandering.",
+      "when_to_apply": "Each time a new furniture piece, container, or goal object is observed."
+    },
+    {
+      "skill_id": "gen_010",
+      "title": "Progressive Goal Decomposition",
+      "principle": "Break tasks into ordered sub-goals: (1) locate object, (2) obtain or transform it, (3) locate destination/reference object, (4) satisfy spatial relation/placement, completing each sub-goal before moving to the next.",
+      "when_to_apply": "At the start of every episode and whenever the environment state invalidates the current sub-goal."
+    },
+    {
+      "skill_id": "gen_011",
+      "title": "Efficient Relation Search",
+      "principle": "When the goal pairs two objects (A under/on/inside B), restrict search for A to locations near B and vice-versa, instead of treating them independently.",
+      "when_to_apply": "On goals that mention both a target object and a reference object."
+    },
+    {
+      "skill_id": "gen_012",
+      "title": "Terminate Only On Success",
+      "principle": "Issue the 'done' action exclusively after validating that all goal conditions are met; otherwise continue searching or correcting object states.",
+      "when_to_apply": "Before ending an episode or when the agent believes the task is complete."
+    }
+  ],
+  "task_specific_skills": {
+    "pick_and_place": [],
+    "look_at_obj_in_light": [],
+    "clean": [],
+    "heat": [],
+    "cool": [],
+    "examine": []
+  },
+  "common_mistakes": [],
+  "metadata": {
+    "source": "generated from ALFWorld trajectories using o3",
+    "total_memories_analyzed": 223,
+    "task_distribution": {
+      "pick_and_place": {
+        "success": 41,
+        "failure": 35
+      },
+      "look_at_obj_in_light": {
+        "success": 12,
+        "failure": 9
+      },
+      "clean": {
+        "success": 17,
+        "failure": 19
+      },
+      "heat": {
+        "success": 14,
+        "failure": 18
+      },
+      "cool": {
+        "success": 19,
+        "failure": 16
+      },
+      "examine": {
+        "success": 10,
+        "failure": 13
+      }
+    },
+    "variant": "general_skills_only (no task-specific, no mistakes)"
+  }
+}

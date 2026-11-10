@@ -38,13 +38,43 @@ def sw_cap(valid: List[str], cap: int) -> List[str]:
     return out
 
 
+SW_TWO_OBJ = ("move ", "pour ", "dunk ", "use ", "connect ")
+
+
+def sw_held_list(env) -> List[str]:
+    """ScienceWorld's valid action list, with one rule: two-object actions (move/pour/dunk/use X ... Y) are listed only
+    when X is something the agent holds. Everything else is listed as the environment returns it.
+    Validated by analysis/gold_check.py: every gold solution can be executed using only actions from this list."""
+    wt = env.get_valid_action_object_combinations_with_templates()
+    held = {x["obj_ids"][0] for x in wt if x["action"].startswith("put down ") and x.get("obj_ids")}
+    out = []
+    for x in wt:
+        a = x["action"]
+        if a.startswith(SW_TWO_OBJ) and len(x.get("obj_ids", [])) >= 2 and x["obj_ids"][0] not in held:
+            continue
+        out.append(a)
+    return out
+
+
 class ScienceWorldAdapter:
     name, env_name = "scienceworld", "ScienceWorld Environment"
     intrusion = [p for p in ALF_WORDING if "go to" not in p.pattern]   # 'go to LOC' is valid ScienceWorld syntax
 
+    @staticmethod
+    def _ticks(args) -> int:
+        # ScienceWorld's own step limit (library default 100). It counts internal ticks: one 'wait' costs 10.
+        # By default it equals the action budget (--max_steps); --sw_tick_limit > 0 overrides it (non-default, must be reported).
+        t = int(getattr(args, "sw_tick_limit", 0) or 0)
+        return t if t > 0 else int(args.max_steps)
+
+    def _shown(self, env, valid, args) -> List[str]:
+        if getattr(args, "sw_list", "held") == "held":
+            return sw_held_list(env)
+        return sw_cap(valid, args.max_actions)
+
     def jobs(self, args) -> List[Dict]:
         from scienceworld import ScienceWorldEnv
-        env = ScienceWorldEnv("", envStepLimit=args.max_steps)
+        env = ScienceWorldEnv("", envStepLimit=self._ticks(args))
         out = []
         for t in args.tasks.split(","):
             env.load(t, 0, args.simplifications, False)
@@ -56,25 +86,37 @@ class ScienceWorldAdapter:
 
     def make_env(self, args):
         from scienceworld import ScienceWorldEnv
-        return ScienceWorldEnv("", envStepLimit=args.max_steps)
+        return ScienceWorldEnv("", envStepLimit=self._ticks(args))
 
-    def start(self, env, job, args):
-        env.load(job["task_key"], job["variation"], args.simplifications, False)
+    def start(self, env, job, args, gold: bool = False):
+        env.load(job["task_key"], job["variation"], args.simplifications, gold)
         obs, info = env.reset()
         task = env.get_task_description()
         valid = list(info.get("valid", env.get_valid_action_object_combinations()))
-        return task, f"{obs}\n\nYour task is to: {task}", sw_cap(valid, args.max_actions), valid
+        return task, f"{obs}\n\nYour task is to: {task}", self._shown(env, valid, args), valid
 
     def step(self, env, action, args):
         obs, reward, done, info = env.step(action)
         score = int(info.get("score", 0)); valid = list(info.get("valid", []))
-        return obs, sw_cap(valid, args.max_actions), valid, bool(done) or score >= 100, score >= 100, score
+        return obs, self._shown(env, valid, args), valid, bool(done) or score >= 100, score >= 100, score
 
 
 class TWXAdapter:
     """TextWorldExpress games: twc (tidy-up) and cookingworld."""
-    DEFAULT_PARAMS = {"twc": "numLocations=3, numItemsToPutAway=2, includeDoors=0, limitInventorySize=0",
+    # TextWorldExpress LIBRARY DEFAULTS (what the games generate with gameParams=""; verified with getGenerationProperties()).
+    DEFAULT_PARAMS = {"twc": "numLocations=3, numItemsToPutAway=4, includeDoors=0, limitInventorySize=0",
+                      "cookingworld": "numLocations=11, numIngredients=3, numDistractorItems=10, includeDoors=1, limitInventorySize=1"}
+    # Settings we used earlier. NOTE: 'reduced' was mislabelled "original" in early runs/logs; it is easier than the library default.
+    REDUCED_PARAMS = {"twc": "numLocations=3, numItemsToPutAway=2, includeDoors=0, limitInventorySize=0",
                       "cookingworld": "numLocations=3, numIngredients=2, numDistractorItems=5, includeDoors=0, limitInventorySize=0"}
+    EASY_PARAMS = {"twc": "numLocations=1, numItemsToPutAway=1, includeDoors=0, limitInventorySize=0",
+                   "cookingworld": "numLocations=1, numIngredients=1, numDistractorItems=3, includeDoors=0, limitInventorySize=0"}
+    PRESETS = {"default": DEFAULT_PARAMS, "reduced": REDUCED_PARAMS, "easy": EASY_PARAMS}
+
+    def params(self, args) -> str:
+        gp = getattr(args, "game_params", None)
+        if not gp: return self.DEFAULT_PARAMS[self.game]
+        return self.PRESETS[gp][self.game] if gp in self.PRESETS else gp      # a preset name or a raw gameParams string
     intrusion = ALF_WORDING   # 'go to' is not TWX syntax (it uses 'move west'), so it counts
 
     def __init__(self, game: str):
@@ -84,7 +126,7 @@ class TWXAdapter:
     def jobs(self, args) -> List[Dict]:
         from textworld_express import TextWorldExpressEnv
         env = TextWorldExpressEnv(envStepLimit=args.max_steps)
-        env.load(gameName=self.game, gameParams=args.game_params or self.DEFAULT_PARAMS[self.game])
+        env.load(gameName=self.game, gameParams=self.params(args))
         seeds = {"train": env.getValidSeedsTrain, "dev": env.getValidSeedsDev, "test": env.getValidSeedsTest}[args.split]()
         if args.max_variations > 0: seeds = seeds[: args.max_variations]
         env.close()
@@ -93,7 +135,7 @@ class TWXAdapter:
     def make_env(self, args):
         from textworld_express import TextWorldExpressEnv
         env = TextWorldExpressEnv(envStepLimit=args.max_steps)
-        env.load(gameName=self.game, gameParams=args.game_params or self.DEFAULT_PARAMS[self.game])
+        env.load(gameName=self.game, gameParams=self.params(args))
         return env
 
     def start(self, env, job, args):

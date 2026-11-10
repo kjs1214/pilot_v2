@@ -1,129 +1,163 @@
-# pilot_v2 — Skill 학습 에이전트의 내재화·일반화·은퇴 (SkillRL 공개 체크포인트 평가)
+# pilot_v2
 
-> 질문: Skill을 프롬프트에 둔 채 RL로 학습한 에이전트는, 학습한 데이터셋에서 Skill 없이도 잘한다.
-> 그 "없이도 된다"가 같은 절차의 다른 데이터셋에서도 유지되는가? (유지되지 않으면 Skill 은퇴는 위험하다)
+Skill을 프롬프트에 넣어 RL로 학습한 에이전트는 학습한 데이터셋에서 Skill 없이도 잘한다.
+**그 "없이도 된다"가 같은 절차의 다른 데이터셋에서도 유지되는지**를 재는 실험 코드다.
+대상 모델은 SkillRL이 공개한 ALFWorld RL 체크포인트다.
 
-## 현재 상태 (2026-11-10)
+---
 
-| 단계 | 내용 | 상태 |
+## 1. 무엇을 판정하나
+
+두 조건이 함께 성립하면 "일반화 실패"로 본다. 기준은 결과를 보기 전에 고정했다.
+
+| | 어디서 | 조건 |
 |---|---|---|
-| Step 1 | ALFWorld seen에서 **일반 Skill**(일반 6 + 실수 5)을 빼도 성능이 그대로인가 | **통과** — full 0.824 vs nogen 0.812, 효과 +0.012 [−0.024, +0.048], seed 3 |
-| 바닥 확인 | 다른 데이터셋 원본 설정에서 RL이 바닥(<0.10)·천장(>0.90)이 아닌가 | 진행 중 — 원본+이력2: TWC 0.05, CookingWorld 0.00 (바닥), ScienceWorld 재실행 필요 → 원본+이력5 시도 중 |
-| Step 2 | 사용 판정된 데이터셋에서 일반 Skill 넣기/빼기 (RL + 미학습 calib 대조) | 대기 |
-| Step 3 | 지식 vs 절차 해석 (궤적 분석) | 대기 |
-| Step 4 | 두 번째 도메인 Search (SkillRL Search 체크포인트) | 대기 |
-| Step 5 | 안전한 은퇴 기준 비교 (이어 학습) | 대기 |
+| ① | ALFWorld (학습한 데이터셋) | 일반 지침을 넣어도 차이가 없다: 효과 ≤ +0.03, CI 윗값 ≤ +0.06 |
+| ② | 다른 데이터셋 | 일반 지침을 넣으면 오른다: 효과 ≥ +0.10, CI 아랫값 > 0 |
 
-설계 메모는 `DESIGN_v2.md`, 측정 정의는 `MEASUREMENTS.md`, 실행 세부는 `RUNBOOK.md`.
+- 판정은 **11개 조건**으로 하고, 6개 조건은 함께 보고한다.
+- 넣어도 0.10 미만이면 "이 설정에서는 판정 불가"로 보고한다. 설정을 쉽게 바꿔 다시 재지 않는다.
+- ScienceWorld는 성공률이 아니라 벤치마크의 진행 점수(0~1)로 판정한다.
 
-## 구조
+## 2. 지금까지의 결과
 
-```
-common/              프롬프트(SkillRL 템플릿 그대로), vLLM/mock 생성기, SkillRL SkillsOnlyMemory 로더
-alfworld_eval/
-  games.py           ALFWorld 게임 열거 (train/seen/unseen)
-  perturb.py         표면 변형 (using / moveto / walkto / fromtake / names) + 되돌리기
-  run_alfworld_eval.py  ALFWorld 한 조건 실행 (Skill bank, 변형, 검색 방식, seed)
-  metrics.py         ALFWorld 집계 (A~G 지표)
-envs/adapters.py     ScienceWorld · TWC · CookingWorld 어댑터 (동일 인터페이스, 난이도 옵션)
-run_eval.py          다른 데이터셋 한 조건 실행
-metrics_transfer.py  다른 데이터셋 집계
-skills/
-  sources.py         Skill 소스: none / general(일반 6+실수 5 원문) / procedural / mismatch_proc / skillrl_raw
-  procedural_skills.json, procedure_map.json   (보조) 환경 무관 절차 Skill과 태그 맵
-configs/
-  names_map_example.json     이름 동의어 13개
-  skills_mismatched.json     과제별 Skill을 다른 유형으로 바꾼 bank
-  skills_nogeneral.json      일반·실수 Skill을 비운 bank (Step 1의 B 조건)
-analysis/general_report.py   Step 1·2 보고서 (효과, CI, seed 간 잡음, 유형별)
-necessity/           (보류) 임베딩 검색 자리 점유 실험
-scripts/
-  setup_workspace.sh  설치: uv 가상환경, 패키지, SkillRL·ALFWorld 데이터, 모델 다운로드, RL 병합(torch 2.8 전용 venv), Java
-  env.sh              경로 변수 + 가상환경 활성화
-  run_general.sh      Step 1 / 바닥 확인 / Step 2 실행기 (환경변수로 조건 지정)
-  run_all.sh          (1차 실험용) 표면 변형·Skill 조건 일괄 실행
-  smoke.sh            ALFWorld 6게임 스모크
-  merge_fsdp_ckpt.py  verl FSDP 체크포인트 → HF safetensors 병합
-  make_skill_variants.py      mismatched / nogeneral bank 생성
-train/               연구실 GPU 2장용 SkillRL 이어 학습 스크립트와 안내 (Step 5용)
-```
+| 단계 | 내용 | 결과 |
+|---|---|---|
+| Step 1 | ALFWorld에서 과제별 Skill은 두고 일반 지침만 빼기 (RL, seed 3) | 통과. seen +0.012 [−0.024, +0.048], unseen +0.017 [−0.025, +0.060] |
+| Step 1 대조 | 같은 실험을 미학습 모델(calib)로 | 11개를 빼면 +0.050 [+0.014, +0.086] 하락. 쓸모 있는 지침이다 |
+| Step 2 | 세 단계 조건을 ALFWorld와 다른 데이터셋에서 | 진행 중 |
 
-## 설치
+## 3. 세 단계 조건
+
+| | Skill 없음 | 일반 6만 | 11개 (일반 6 + 실수 5) |
+|---|---|---|---|
+| ALFWorld (`BANKS`) | `nosk` | `genonly6` | `genonly` |
+| 다른 데이터셋 (`TRANSFER_SKILLS`) | `none` | `general6` | `general` |
+
+- "일반 6"은 SkillRL bank의 `general_skills` 앞 6개, "실수 5"는 `common_mistakes` 앞 5개다. SkillRL이 실제로 주입하는 것들이다.
+- ALFWorld에 넣는 텍스트와 다른 데이터셋에 넣는 텍스트는 글자 단위로 같다.
+- ALFWorld 쪽은 과제별 Skill 없이 잰다. 다른 데이터셋에서는 ALFWorld 과제별 Skill을 쓸 수 없어서 짝을 맞춘 것이다.
+
+## 4. 데이터셋
+
+환경과 데이터는 **바꾼 것이 없다.** 전부 라이브러리 기본값이다.
+
+| 데이터셋 | 설정 | 판 수 | 지표 |
+|---|---|---|---|
+| ALFWorld | 공식 `valid_seen`, 50스텝 | 140 | 성공률 |
+| TWC | TextWorldExpress 기본값 (방 3, 물건 4), 100스텝 | test seed 앞 20 (본 실행 100) | 성공률 |
+| CookingWorld | TextWorldExpress 기본값 (방 11, 재료 3, 문 있음), 100스텝 | test seed 앞 20 (본 실행 100) | 성공률 |
+| ScienceWorld | 단순화 없음, 100스텝, 상태 변화 과제 4개 | 공식 test 변형 36 | 진행 점수 |
+
+수정은 아니지만 논문에 밝혀야 하는 선택:
+
+- TWC·CookingWorld는 원 논문의 게임 파일이 아니라 TextWorldExpress의 재구현이다.
+- ScienceWorld는 30개 과제 중 4개(boil, melt, freeze, change-the-state-of-matter-of)만 쓴다. ALFWorld의 데우기·식히기와 절차가 겹친다.
+- 프롬프트는 SkillRL의 ALFWorld 형식을 그대로 쓴다(환경 이름만 교체). 이력 2스텝, 온도 0.4.
+- ScienceWorld는 가능한 행동이 최대 2,785개라, 두 물체 행동(move·pour·use·dunk·connect)은 든 물건이 첫 대상일 때만 목록에 보여준다. 나머지 환경은 환경이 주는 목록 그대로다.
+
+## 5. 실행
+
+### 설치 (처음 한 번)
 
 ```bash
-export WORK=/root            # 연구실 서버면 /dataset/kjs1214 처럼 넉넉한 디스크
-bash scripts/setup_workspace.sh
+export WORK=/root                      # 연구실 서버면 /dataset/kjs1214
+bash scripts/setup_workspace.sh        # 가상환경, 데이터, 모델 다운로드, RL 병합
 ```
 
-Python 3.12 이하 가상환경(`$WORK/venv`), vLLM, TextWorld/ALFWorld/ScienceWorld/TextWorldExpress, SkillRL 코드, ALFWorld 데이터,
-SFT·RL 체크포인트(약 46GB) 다운로드와 RL 병합까지 한 번에. 끝나면 `cuda available: True`, `[setup] done.`.
-Java(ScienceWorld용)는 `apt`가 없으면 경고만 내고 넘어감.
+### Step 2 축소판 (RL, seed 1개, 방향 확인용)
 
-## 실행 (scripts/run_general.sh)
-
-모든 조건은 환경변수로 지정. 끝난 조건은 건너뛰므로 같은 명령을 다시 걸면 이어서 돈다.
-
-**Step 1 — ALFWorld, 일반 Skill 빼기 (RL, seed 3)**
 ```bash
 source scripts/env.sh
-SEEDS="0 1 2" MODELS="rl" SPLITS="seen" TRANSFER_ENVS="" OUT=runs_step1 bash scripts/run_general.sh
-python analysis/general_report.py runs_step1        # (1) 섹션
+SEEDS="0" MODELS="rl" SPLITS="seen" BANKS="nosk genonly6 genonly" \
+  TRANSFER_ENVS="twc cookingworld scienceworld" TRANSFER_SKILLS="none general6 general" TRANSFER_VARS=20 \
+  TWC_PARAMS=default CW_PARAMS=default MAX_STEPS=100 HISTORY=2 \
+  OUT=runs_s2mini_default bash scripts/run_general.sh
 ```
 
-**바닥 확인 — 다른 데이터셋 원본 설정, Skill 없음 (RL, seed 1)**
+### Step 2 본 실행 (RL + calib, seed 3, 100변형)
+
+위 명령에서 `SEEDS="0 1 2" MODELS="rl calib" TRANSFER_VARS=100 OUT=runs_step2`로 바꾼다.
+
+끝난 조건은 건너뛰므로, 중간에 끊겨도 같은 명령을 다시 걸면 이어서 돈다.
+
+### 결과 보기
+
 ```bash
-SEEDS="0" MODELS="rl" SPLITS="" TRANSFER_SKILLS="none" TRANSFER_VARS=20 \
-  MAX_ACTIONS=0 MAX_STEPS=100 HISTORY=5 MAX_MODEL_LEN=16384 SW_SIMPL="" \
-  TWC_PARAMS="numLocations=3, numItemsToPutAway=2, includeDoors=0, limitInventorySize=0" \
-  CW_PARAMS="numLocations=3, numIngredients=2, numDistractorItems=5, includeDoors=0, limitInventorySize=0" \
-  OUT=runs_floor_orig_h5 bash scripts/run_general.sh
-python metrics_transfer.py "runs_floor_orig_h5/transfer/*.jsonl"
+python analysis/general_report.py runs_s2mini_default
+python analysis/failure_modes.py "runs_s2mini_default/transfer/*.jsonl"
 ```
 
-**Step 2 — 사용 판정된 데이터셋에서 일반 Skill 넣기/빼기 (RL + calib, seed 3)**
+| 보고서 섹션 | 내용 |
+|---|---|
+| (1a) | ALFWorld, 과제별 Skill 있음: 일반 지침을 뺐을 때의 효과 (Step 1) |
+| (1b) | ALFWorld, 과제별 Skill 없음: 일반 지침을 넣었을 때의 효과 |
+| (2) | 다른 데이터셋: 일반 지침을 넣었을 때의 효과 |
+| (3) | 조건 ①②에 대한 판정 (`MET` / `NOT met` / 바닥) |
+| (4) | 짝지은 비교: 각 데이터셋을 절차가 겹치는 ALFWorld 유형 옆에 놓는다 (추가 로그) |
+| (5) | ScienceWorld 과제별 결과 (추가 로그) |
+
+(4)의 짝은 결과를 보기 전에 정했다: TWC ↔ pick·pick2, ScienceWorld ↔ heat·cool, CookingWorld ↔ pick·heat(가장 약한 짝).
+(4)와 (5)는 기록용이며 실행 내용과 (3)의 판정을 바꾸지 않는다.
+
+`failure_modes.py`는 에피소드가 어떻게 끝났는지(성공 / 환경이 일찍 종료 / 스텝 소진), 목록 안 행동 비율, 같은 행동 반복, 가장 잦은 행동을 찍는다.
+
+## 6. 하네스 검증 (GPU 불필요)
+
+환경이 제공하는 정답 경로를 우리 실험 코드로 재생해서, 우리 설정이 성공을 막지 않는지 확인한다.
+
 ```bash
-SEEDS="0 1 2" MODELS="rl calib" SPLITS="seen" TRANSFER_ENVS="twc" TRANSFER_VARS=20 \
-  (위와 같은 난이도 옵션) OUT=runs_step2 bash scripts/run_general.sh
-python analysis/general_report.py runs_step2
+python analysis/gold_check.py twc default     # 정답 20/20, 정답 행동이 전부 목록에 있음
+python analysis/gold_check.py cw default      # 정답 20/20, 정답 행동이 전부 목록에 있음
+python analysis/gold_check.py sw              # 목록의 행동만으로 정답과 같은 점수, 목록 규칙이 막은 스텝 0
 ```
-`SPLITS="seen"`을 두면 calib의 ALFWorld 넣기/빼기(미학습 모델 대조)도 같이 돈다.
 
-### 환경변수
+ScienceWorld는 100스텝 안에 정답 경로도 다 끝나지 않는 변형이 있다(정답 평균 80~91점). 그래서 진행 점수로 판정한다.
+
+## 7. 폴더 구조
+
+```
+scripts/
+  setup_workspace.sh      설치
+  env.sh                  경로 변수, 가상환경
+  run_general.sh          Step 1·2 실행기
+  make_skill_variants.py  Skill bank 변형 생성
+  merge_fsdp_ckpt.py      RL 체크포인트 병합
+alfworld_eval/            ALFWorld 실행 (run_alfworld_eval.py), 게임 목록, 표면 변형, 집계
+envs/adapters.py          TWC·CookingWorld·ScienceWorld 어댑터
+run_eval.py               다른 데이터셋 실행
+skills/sources.py         Skill 텍스트 소스 (none / general6 / general 등)
+configs/                  Skill bank 변형 (genonly, genonly6, nogeneral, nogeneral6, mismatched)
+analysis/
+  general_report.py       보고서
+  failure_modes.py        실패 진단
+  gold_check.py           하네스 검증
+common/                   프롬프트, vLLM 래퍼, SkillRL 메모리 로더
+train/                    SkillRL 이어 학습 스크립트 (연구실 GPU용)
+```
+
+## 8. 환경변수 (`scripts/run_general.sh`)
 
 | 변수 | 기본값 | 뜻 |
 |---|---|---|
-| SEEDS | `0 1 2` | 반복 seed (seed마다 전체 게임 1회) |
-| MODELS | `rl calib` | rl / calib / base |
-| SPLITS | `seen unseen` | ALFWorld 분할. `""`이면 ALFWorld 생략 |
-| TRANSFER_ENVS | `twc cookingworld scienceworld` | 다른 데이터셋. `""`이면 생략 |
-| TRANSFER_SKILLS | `none general` | 다른 데이터셋 Skill 조건 |
-| TRANSFER_VARS | 20 | 환경별 변형 수 (ScienceWorld는 과제당 test 변형 9개가 상한) |
-| MAX_STEPS / MAX_ACTIONS / HISTORY | 50 / 150 / 2 | 스텝 상한 / 행동 목록 상한(0=무제한) / 이력 길이 |
-| MAX_MODEL_LEN | 8192 | vLLM 최대 길이. 원본 ScienceWorld는 16384 필요 |
-| SW_SIMPL | `noElectricalAction,openDoors,teleportAction` | ScienceWorld 단순화. `""`이면 원본 |
-| TWC_PARAMS / CW_PARAMS | (방 1개 쉬운 설정) | TextWorldExpress 게임 설정. 원본은 위 예시 |
-| OUT | `runs_gen` | 결과 폴더 |
-| PARALLEL | 8 | 다른 데이터셋 동시 에피소드 수 |
+| `SEEDS` | `0 1 2` | 반복 seed |
+| `MODELS` | `rl calib` | `rl`, `calib`, `base` |
+| `SPLITS` | `seen unseen` | ALFWorld 분할. `""`이면 ALFWorld 생략 |
+| `BANKS` | `full nogen` | ALFWorld Skill 조건. 과제별 있음: `full` `nogen` `nogen6` / 과제별 없음: `nosk` `genonly6` `genonly` |
+| `TRANSFER_ENVS` | `twc cookingworld scienceworld` | 다른 데이터셋. `""`이면 생략 |
+| `TRANSFER_SKILLS` | `none general6 general` | 다른 데이터셋 Skill 조건 |
+| `TRANSFER_VARS` | 20 | 환경별 변형 수 (ScienceWorld는 과제당 9개가 상한) |
+| `TWC_PARAMS`, `CW_PARAMS` | `default` | `default`(라이브러리 기본값) / `reduced` / `easy` 또는 gameParams 문자열 |
+| `MAX_STEPS` | 50 | TWC·CookingWorld 스텝 제한. 라이브러리 기본값은 100 |
+| `HISTORY` | 2 | 프롬프트에 넣는 이전 스텝 수 |
+| `OUT` | `runs_gen` | 결과 폴더 |
 
-## 결과 읽기
+ScienceWorld 전용: `SW_SIMPL`(기본 없음), `SW_MAX_STEPS`(기본 100), `SW_LIST`(기본 `held`). 기본값이 라이브러리 기본 설정이다.
 
-`analysis/general_report.py <OUT>`:
-- **(1) ALFWorld**: `full`(Skill 그대로) vs `nogen`(일반 Skill 뺌) 성공률, 효과와 95% CI(게임 단위 부트스트랩, seed 평균), seed 간 뒤집힘 비율(잡음), 유형별 효과
-- **(2) 다른 데이터셋**: `general − none` 효과 (성공률, 점수)
-- 판정 기준(사전 고정): Step 1 통과 = 효과 ≤ +0.03 이고 CI 윗값 ≤ +0.06. 데이터셋 사용 = RL `none`이 0.10~0.90.
+## 9. 주의
 
-`metrics_transfer.py "<OUT>/transfer/*.jsonl"`: 데이터셋 × 모델 × Skill 조건별 성공률·점수·ALFWorld식 명령 침입률.
-
-## 고정 설정
-
-- 모델: RL = SkillRL 공개 `Alfworld-7B-RL`(학습률 기록상 step 80 추정) 병합본, calib = Qwen3-30B-A3B(ALFWorld 미학습), base = Qwen2.5-7B-Instruct
-- 프롬프트: SkillRL 템플릿 그대로 (첫 스텝 Skill 없음, 이력 N스텝, 가능한 행동 목록), 온도 0.4, 최대 512토큰
-- 일반 Skill 정의: SkillRL bank의 `general_skills` 앞 6개 + `common_mistakes` 앞 5개 (template 모드가 실제로 주입하는 것)
-- 다른 데이터셋에 넣는 일반 Skill은 SkillRL `format_for_prompt`와 글자 단위로 같은 텍스트
-
-## 알려진 한계
-
-- 공개 RL 체크포인트는 학습 중간(step 80/150 추정)일 수 있음
-- 공개 SFT 체크포인트는 학습 데이터 형식이 실제 환경과 달라 비교에서 제외
-- `moveto` 변형은 실제 놓기 명령(`move X to Y`)과 겹치므로 표면 변형으로 쓰지 않음 (`walkto` 사용)
-- 1회 실행의 성공률은 0.1 이상 흔들릴 수 있어 모든 비교는 seed 3개 이상
+- 공개 RL 체크포인트는 학습 중간(step 80/150 추정)일 수 있다.
+- 한 번 실행한 성공률은 0.1 이상 흔들린다. 본 실행은 seed 3개로 한다.
+- 논문 결과로 쓰지 않는 이전 실행: 1차 실험(표면 변형, 쉬운 설정)과 바닥 확인. 쉬운 설정을 썼거나 ScienceWorld 설정에 문제가 있었다. 그 로그에서 "원본"이라 부른 TWC·CookingWorld 설정은 라이브러리 기본값이 아니었다.
+- `reduced`·`easy` 설정, ScienceWorld 단순화, 표면 변형은 코드에 옵션으로만 남아 있다.
+- `DESIGN_v2.md`, `MEASUREMENTS.md`, `RUNBOOK.md`는 1차 실험 시점의 문서다. 현재 설계는 이 README가 기준이다.
