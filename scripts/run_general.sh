@@ -8,6 +8,7 @@
 #   SEEDS="0 1 2" WORKSPACE_SLUG=... nohup bash scripts/run_general.sh > runs_gen/log.txt 2>&1 &
 # Original (unsimplified) other-dataset settings: SW_SIMPL="" TWC_PARAMS="numLocations=3, numItemsToPutAway=2, includeDoors=0, limitInventorySize=0"
 #   CW_PARAMS="numLocations=3, numIngredients=2, numDistractorItems=5, includeDoors=0, limitInventorySize=0" MAX_ACTIONS=0 MAX_STEPS=100 HISTORY=5
+#   MAX_MODEL_LEN=16384 (original ScienceWorld prompts with the full action list exceed 8k tokens)
 set -uo pipefail
 cd "$(dirname "$0")/.." && source scripts/env.sh
 OUT=${OUT:-runs_gen}; SEEDS=${SEEDS:-0 1 2}; MODELS=${MODELS:-rl calib}
@@ -39,7 +40,7 @@ for seed in $SEEDS; do
         echo "[$(date '+%F %T')] transfer $env $tag $sk seed=$seed"
         python run_eval.py --env $env --model "$(model_of $tag)" --tag $tag --skills $sk --split test \
           --max_variations ${TRANSFER_VARS:-20} --reps 1 --seed $seed --parallel ${PARALLEL:-8} --save_think \
-          --max_steps ${MAX_STEPS:-50} --max_actions ${MAX_ACTIONS:-150} --history_length ${HISTORY:-2} \
+          --max_steps ${MAX_STEPS:-50} --max_actions ${MAX_ACTIONS:-150} --history_length ${HISTORY:-2} --max_model_len ${MAX_MODEL_LEN:-8192} \
           $(extra_of $tag) "${envopt[@]}" --out "$out.tmp" && mv "$out.tmp" "$out"
       done
     done

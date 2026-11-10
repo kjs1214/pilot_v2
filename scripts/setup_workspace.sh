@@ -49,9 +49,11 @@ if [ ! -f "$W/ckpt/rl_merged/config.json" ]; then
   # The RL checkpoint was saved by verl with torch 2.8 (DTensor/DeviceMesh pickles). Newer torch (pulled in by vLLM)
   # can fail to unpickle them, so merge in a small dedicated CPU venv with torch 2.8.0.
   if [ ! -x "$W/venv_merge/bin/python" ]; then
-    python3 -m venv "$W/venv_merge"
-    "$W/venv_merge/bin/pip" install -q "torch==2.8.0" --index-url https://download.pytorch.org/whl/cpu
-    "$W/venv_merge/bin/pip" install -q safetensors numpy
+    # slim images lack python3-venv/ensurepip, so build the merge venv with uv (no pip needed inside the venv)
+    rm -rf "$W/venv_merge"
+    uv venv --python 3.12 --seed "$W/venv_merge"
+    uv pip install --python "$W/venv_merge/bin/python" -q "torch==2.8.0" --index-url https://download.pytorch.org/whl/cpu
+    uv pip install --python "$W/venv_merge/bin/python" -q safetensors numpy
   fi
   "$W/venv_merge/bin/python" "$PILOT/scripts/merge_fsdp_ckpt.py" --local_dir "$W/ckpt/rl_raw/actor" --target_dir "$W/ckpt/rl_merged"
   rm -rf "$W/ckpt/rl_raw"
